@@ -1,0 +1,590 @@
+<?php
+// $Id$
+
+function editablefields_help($section = 'admin/help#editablefields') {
+  switch ($section) {
+    case 'admin/modules#description':
+      return t('Plugin for views to make some fields editable.');
+  }
+}
+
+
+function editablefields_views_style_plugins() {
+  $result = array(
+    'editablefields_table' => array(
+      'name' => t('Editablefields - table'),
+      'theme' => 'views_editablefields_view_table',
+      'needs_fields' => true,
+      'needs_table_header' => true,
+      'even_empty' => true,
+      ),
+    'editablefields_list' => array(
+      'name' => t('Editablefields - list'),
+      'theme' => 'views_editablefields_view_list',
+      'needs_fields' => true,
+      'needs_table_header' => true,
+      'even_empty' => true,
+      ),
+    'ef_table_noform' => array(
+      'name' => t('Editablefields - table - no form'),
+      'theme' => 'views_editablefields_view_table_noform',
+      'needs_fields' => true,
+      'needs_table_header' => true,
+      'even_empty' => true,
+      ),
+    'ef_list_noform' => array(
+      'name' => t('Editablefields - list - no form'),
+      'theme' => 'views_editablefields_view_list_noform',
+      'needs_fields' => true,
+      'needs_table_header' => true,
+      'even_empty' => true,
+      ),
+    );
+
+  return $result;
+}
+
+
+function editablefields_field_formatter_info()
+{
+  return array(
+    'editable' => array(
+      'label' => 'Editable',
+      'field types' => array_keys(_content_field_types()),
+      ));
+}
+
+
+
+
+
+/**
+ * handle editable field forms, and return back if there are editable fields
+ */
+function _editablefields_node_load_and_update($nid,$oldnode=NULL)
+{
+  
+  $node=node_load($nid);
+  if (node_access("update",$node)) {
+    
+    $nodeupdate=FALSE;
+    if ($_POST['op']) {
+      foreach ($_POST as $post => $value) {
+        if (sscanf($post, "editablefield_%d_%s",$nid,$fieldname) == 2) {
+          if ($nid == $node->nid) {
+            if ($node->$fieldname != $value) {
+              $node->$fieldname=$oldnode?$oldnode->$fieldname:$value;
+              $nodeupdate=TRUE;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return $nodeupdate? $node : NULL;
+}
+
+function _handle_editablefield_form_input($view, $nodes) {
+// it's really hard to check for each field, as we would have to decode the info
+// data, I guess we could, but I dont see the harm, we will revent people from
+// writing to nodes they are not allowed to below anyway.
+  
+  $editable=false;
+  foreach ($view->field as $field) {
+    
+    if ($field['options'] == 'editable') {
+      $editable=true;
+    }
+  }
+  /*  if ($editable) { // we dont need to be THIS zealous
+    $editable=FALSE;
+    foreach ($nodes as $node) {
+      if (node_access("update",$node)) {
+        $editable=TRUE;
+      }
+    }
+  }
+  */
+  if ($editable) {
+    foreach ($nodes as $node) {
+      if ($node=_editablefields_node_load_and_update($node->nid)) {
+ 
+        global $viewfield_stack;
+        $tmp=$viewfield_stack;
+        $viewfield_stack=array();
+
+       node_validate($node,array('title'=>array('#parents'=>array('title'))));
+        if (! form_get_errors()) {
+          $node=_editablefields_node_load_and_update($node->nid);
+          $node=node_submit($node);
+          // this will ensure that we do not touch ANY fields, appart from the
+          // ones we are aloud to touch
+         $node=_editablefields_node_load_and_update($node->nid,$node);
+         //This implements auto_nodetitle actualization
+         if (variable_get('ant_'. $node->type, 0)) {
+            auto_nodetitle_set_title($node);
+         }
+
+          node_save($node);
+        }
+
+        $viewfield_stack=$tmp;
+      }
+    }
+  }
+  return $editable;
+}
+
+function _editablefields_make_form_ids_unique($form, $nid) {
+  // much of this code is from form_builder. we set input elements' #id to a
+  // unique id by postpending -$nid.
+
+  if ((!empty($form['#type'])) && ($info = _element_info($form['#type']))) {
+    // overlay $info onto $form, retaining preexisting keys in $form
+    $form += $info;
+  }
+
+  if (isset($form['#input']) && $form['#input']) {
+    $form['#id'] = (isset($form['#id'])) ? $form['#id'] : 'edit-' . implode('-', $form['#parents']);
+    $form['#id'] .= '-' . $nid;
+  }
+
+  // recurse through sub-elements
+  foreach (element_children($form) as $key) {
+    // don't squash an existing tree value
+    if (!isset($form[$key]['#tree'])) {
+      $form[$key]['#tree'] = $form['#tree'];
+    }
+
+    // don't squash existing parents value
+    if (!isset($form[$key]['#parents'])) {
+      // Check to see if a tree of child elements is present. If so, continue down the tree if required.
+      $form[$key]['#parents'] = $form[$key]['#tree'] && $form['#tree'] ? array_merge($form['#parents'], array($key)) 
+: array($key);
+    }
+    $form[$key] = _editablefields_make_form_ids_unique($form[$key], $nid);
+  }
+  return $form;
+}
+
+
+function _editablefields_content_form_field(&$node, $fieldname)
+{
+  $form = array();
+  $type_name = is_string($node) ? $node : (is_array($node) ? $node['type'] : $node->type);
+  $types = content_types($type_name);
+
+  $field=$types['fields'][$fieldname];
+  $widget_types = _content_widget_types();
+
+    // Set form parameters so we can accept file uploads.
+  if (count($type['fields'])) {
+    $form['#attributes'] = array("enctype" => "multipart/form-data");
+  }
+  
+  _editablefields_content_widget_invoke_field('prepare form values', $node,$field,$widget_types);
+  $form = array_merge($form,_editablefields_content_widget_invoke_field('form',$node,$field,$widget_types));
+  
+  return $form;
+  
+}
+ 
+/**
+ * Invoke a widget hook for one field.
+ */
+function _editablefields_content_widget_invoke_field($op, &$node,  $field, $widget_types) 
+{
+  $return = array();
+  
+  $node_field = isset($node->$field['field_name']) ? $node->$field['field_name'] : array();
+    
+  $module = $widget_types[$field['widget']['type']]['module'];
+  $function = $module .'_widget';
+  
+  if (function_exists($function)) {
+    
+    // If we're building a node creation form, pre-fill with default values
+    if ($op == 'prepare form values' && empty($node->nid)) {
+      $node_field = array_merge($node_field, content_default_value($node, $field, $node_field));
+    }
+    
+    $result = $function($op, $node, $field, $node_field);
+    if (is_array($result) && $op == 'form') {
+      $result[$field['field_name']]['#weight'] = $field['widget']['weight'];
+    }
+    if (is_array($result)) {
+      $return = array_merge($return, $result);
+    }
+    else if (isset($result)) {
+      $return[] = $result;
+    }
+  }
+  // test for values in $node_field in case modules added items
+  if (is_object($node) && (isset($node->$field['field_name']) || count($node_field))) {
+    $node->$field['field_name'] = $node_field;
+  }
+
+  return $return;
+  
+}
+
+/**
+ * Themeable function to handle displaying a specific field.
+ */
+function theme_views_editablefields_handle_field($fields, $field, $data) {
+  $info = $fields[$field['fullname']];
+
+  if ($field['options'] == 'editable') {
+      
+    $node=node_load($data->nid);
+    if (node_access("update",$node)) {
+      if ($info['content_field']['field_name']) {
+        $form=array();
+        
+        global $viewfield_stack;
+        $tmp=$viewfield_stack;
+        $viewfield_stack=array();
+        $form=_editablefields_content_form_field($node, $info['content_field']['field_name']);
+        $viewfield_stack=$tmp;
+        
+        foreach (element_children($form) as $key) {
+          $form["editablefield_".$data->nid."_".$key]=$form[$key];
+          unset($form[$key]);
+        }
+        
+        $form=_editablefields_make_form_ids_unique($form,$data->nid);
+        $form=form_builder('editableviewfield',$form);
+        
+        return $form=drupal_render_form('editableviewfield',$form);
+      } // no access, so silently just print field out.
+      else if (!empty($info['form_parents'])){
+        $form = array();
+        $node_form = node_invoke($node, 'form');
+        foreach (explode('][', $info['form_parents']) as $key){
+            $node_form = $node_form[$key];
+        }
+        if (is_array($node_form)){
+          $form['editablefield_'. $data->nid .'_'. $field['field']] = $node_form;
+        }
+        $form = _editablefields_make_form_ids_unique($form, $data->nid);
+        $form = form_builder('editableviewfield', $form);
+        return $form = drupal_render_form('editableviewfield', $form);
+      }
+    } else {
+      drupal_set_message("enable CCK if you wish to edit fields");
+    }
+  }
+
+  if ($field['handler'] && function_exists($field['handler'])) {
+    return $field['handler']($info, $field, $data->$field['queryname'], $data);
+  }
+
+  if ($info['handler'] && is_string($info['handler']) && function_exists($info['handler'])) {
+    return $info['handler']($info, $field, $data->$field['queryname'], $data);
+  }
+
+  return check_plain($data->$field['queryname']);
+}
+
+/**
+ * Display the nodes of a view as a list.
+ */
+function theme_views_editablefields_view_list($view, $nodes, $type) {
+  $fields = _views_get_fields();
+
+  $editable=_handle_editablefield_form_input($view, $nodes);
+  foreach ($nodes as $node) {
+    $item = '';
+    foreach ($view->field as $field) {
+      if (!isset($fields[$field['id']]['visible']) && $fields[$field['id']]['visible'] !== FALSE) {
+        if ($field['label']) {
+          $item .= "<div class='view-label ". views_css_safe('view-label-'. $field['queryname']) ."'>" . $field['label'] . "</div>";
+        }
+        $item .= "<div class='view-field ". views_css_safe('view-data-'. $field['queryname']) ."'>" . views_theme_field('views_editablefields_handle_field', $field['queryname'], $fields, $field, $node, $view) . "</div>";
+      }
+    }
+    $items[] = "<div class='view-item ". views_css_safe('view-item-'. $view->name) ."'>$item</div>\n"; // l($node->title, "node/$node->nid");
+  }
+    $html=theme('item_list', $items);
+    
+    if ($editable) {
+      $newentry_form=_editablefields_entry_form($view);
+      if ($nodes) {
+  $form['editablefields']['submit']= array('#type' => 'submit', '#value' => t('Submit'));
+  $form['editablefields']['#value']=$html;
+  drupal_process_form('editablefields',$form);
+  $eform=drupal_render($form);
+  return $eform.$newentry_form;
+      } else {
+  return $newentry_form;
+      }
+    } else {
+      return $html;
+    }
+}
+
+/**
+ * Display the nodes of a view as a table.
+ */
+function theme_views_editablefields_view_table($view, $nodes, $type) {
+  $fields = _views_get_fields();
+
+  $editable=_handle_editablefield_form_input($view, $nodes);
+
+  foreach ($nodes as $node) {
+    $row = array();
+    foreach ($view->field as $field) {
+      if ($fields[$field['id']]['visible'] !== FALSE) {
+        $cell['data'] = views_theme_field('views_editablefields_handle_field', $field['queryname'], $fields, $field, $node, $view);
+        $cell['class'] = "view-field ". views_css_safe('view-field-'. $field['queryname']);
+        $row[] = $cell;
+      }
+    }
+    $rows[] = $row;
+  }
+  $html=theme('table', $view->table_header, $rows );
+    if ($editable) {
+      $newentry_form="<table>"._editablefields_entry_form($view)."</table>";
+      //$newentry_form=_editablefields_entry_form($view);
+      if ($nodes) {
+  $form['editablefields']['submit']= array('#type' => 'submit', '#value' => t('Submit'));
+  $form['editablefields']['#value']=$html;
+  drupal_process_form('editablefields',$form);
+  $eform=drupal_render($form);
+  return $eform.$newentry_form;
+      } else {
+  return $newentry_form;
+      }
+    } else {
+      return $html;
+    }
+}
+
+/**
+ * Display the nodes of a view as a list.
+ */
+function theme_views_editablefields_view_list_noform($view, $nodes, $type) {
+  $fields = _views_get_fields();
+
+  $editable=_handle_editablefield_form_input($view, $nodes);
+  foreach ($nodes as $node) {
+    $item = '';
+    foreach ($view->field as $field) {
+      if (!isset($fields[$field['id']]['visible']) && $fields[$field['id']]['visible'] !== FALSE) {
+        if ($field['label']) {
+          $item .= "<div class='view-label ". views_css_safe('view-label-'. $field['queryname']) ."'>" . $field['label'] . "</div>";
+        }
+        $item .= "<div class='view-field ". views_css_safe('view-data-'. $field['queryname']) ."'>" . views_theme_field('views_editablefields_handle_field', $field['queryname'], $fields, $field, $node, $view) . "</div>";
+      }
+    }
+    $items[] = "<div class='view-item ". views_css_safe('view-item-'. $view->name) ."'>$item</div>\n"; // l($node->title, "node/$node->nid");
+  }
+    $html=theme('item_list', $items);
+    
+    if ($editable) {
+      if ($nodes) {
+  $form['editablefields']['submit']= array('#type' => 'submit', '#value' => t('Submit'));
+  $form['editablefields']['#value']=$html;
+  drupal_process_form('editablefields',$form);
+  $eform=drupal_render($form);
+  return $eform;
+      }
+    }
+    return $html;
+}
+
+/**
+ * Display the nodes of a view as a table.
+ */
+function theme_views_editablefields_view_table_noform($view, $nodes, $type) {
+  $fields = _views_get_fields();
+
+  $editable=_handle_editablefield_form_input($view, $nodes);
+
+  foreach ($nodes as $node) {
+    $row = array();
+    foreach ($view->field as $field) {
+      if ($fields[$field['id']]['visible'] !== FALSE) {
+        $cell['data'] = views_theme_field('views_editablefields_handle_field', $field['queryname'], $fields, $field, $node, $view);
+        $cell['class'] = "view-field ". views_css_safe('view-field-'. $field['queryname']);
+        $row[] = $cell;
+      }
+    }
+    $rows[] = $row;
+  }
+  $html=theme('table', $view->table_header, $rows );
+    if ($editable) {
+      if ($nodes) {
+  $form['editablefields']['submit']= array('#type' => 'submit', '#value' => t('Submit'));
+  $form['editablefields']['#value']=$html;
+  drupal_process_form('editablefields',$form);
+  $eform=drupal_render($form);
+  return $eform;
+      }
+    }
+    return $html;
+}
+
+function _editablefields_node_type($view) {
+  $editable=false;
+  foreach ($view->field as $field) {
+    if ($field['options'] == 'editable') {
+      $editable=true;
+    }
+  }
+  $type = false;
+  if ($editable) {
+    foreach ($view->filter as $filter) {
+      if ($filter['field'] == 'node.type') {
+        $type = $filter['value'][0];
+        break;
+      }
+    }
+  }
+  return $type;
+}
+
+
+function _editablefields_entry_form($view)
+{
+  $type=_editablefields_node_type($view);
+  if (!$type) {
+    return '';
+  }
+
+  global $user;
+
+  $types = node_get_types();
+  $type = isset($type) ? str_replace('-', '_', $type) : NULL;
+  // If a node type has been specified, validate its existence.
+  if (isset($types[$type]) && node_access('create', $type)) {
+    // Initialize settings:
+    $node = array('uid' => $user->uid, 'name' => $user->name, 'type' => $type, 'language' => '');
+
+    $form = _editablefields_drupal_get_form(false,$type,$view);
+    $output = drupal_render_form($type.'_node_form',$form);
+  }
+  return '<div class="view_footer_form">'.$output.'</div>';
+}
+
+function editablefields_views_pre_query(&$view)
+{
+  if ($_POST['editablefields_addnew_form']) {
+    $type=_editablefields_node_type($view);
+    if (!$type) {
+      return;
+    }
+    unset ($_POST['editablefields_addnew_form']);
+  
+    _editablefields_drupal_get_form(true,$type,$view);
+  }
+}
+
+
+function _editablefields_drupal_get_form($process=false, $type,$view) {
+  global $viewfield_stack;
+  $tmp=$viewfield_stack;
+  $viewfield_stack=array();
+  global $user;
+
+  $form_id=$type.'_node_form';
+  $node = array('uid' => $user->uid, 'name' => $user->name, 'type' => $type, 'language' => '');
+  $form_state = array('storage' => NULL, 'submitted' => FALSE);
+
+  $form_state['post'] = $_POST;
+  $form=drupal_retrieve_form($form_id,$node);
+  drupal_prepare_form($form_id, $form, $form_state);
+  $form_build_id = 'form-'. md5(mt_rand());
+  $form['#build_id'] = $form_build_id;
+  $form['editablefields_addnew_form']=array('#type' => 'hidden', '#value' => $type);
+
+  foreach ($view->argument as $id => $arg) {
+    if (preg_match('/^content: (field_.*)$/',$arg['type'],$matches)) {
+      $fieldname=$matches[1];
+      if (is_array($view->args[$id])) {
+  $form['editablefieldsfiltervalue_'.$fieldname]=array('#type'=>'value','#value'=>$view->args[$id]);
+      } else {
+  $form['editablefieldsfiltervalue_'.$fieldname]=array('#type'=>'value','#value'=>array($view->args[$id]));
+      }
+    }
+  }
+  
+  foreach ($view->filter as $filter) {
+    if (preg_match('/^node_data_(.*)\.\1_(.*)$/',$filter['field'], $matches)) {
+      $fieldname=$matches[1];
+      $valuename=$matches[2];
+      $form['editablefieldsfiltervalue_'.$fieldname]=array('#type'=>'value','#value'=>$filter['value']);
+    }
+  }
+
+
+    unset ($form['preview']); // preview really gets in the way of this functionality
+
+  drupal_prepare_form($form_id, $form, $form_state);
+
+  foreach ($form as $fn=>$fi) {
+    foreach ($view->field as $vf=>$vfield) {
+      if ($vfield['field']==$fn."_value") {
+    $form[$fn]['#prefix']='<td>';
+    $form[$fn]['#suffix']='</td>';
+      }
+    }
+  }
+
+  $newform=array();
+  $newform['form_editablefield_row']=array('#type' => 'fieldset', '#prefix' => '<tr class=form_edit_line>', '#suffix' => '</tr>', '#weight' =>0);
+  $newform['form_editablefield_other']=array('#type' => 'fieldset', '#prefix' => '<tr class=form_edit_line><td colspan=0>', '#suffix' => '</td></tr>','#weight' =>10);
+  foreach ($form as $fn=>$fi) {
+    if (is_array($form[$fn]) && strncmp($fn,'#',1)!=0) {
+      $inview=0;
+      foreach ($view->field as $vf=>$vfield) {
+          if (strncmp($fn."_",$vfield['field'],strlen($fn)+1)==0) {
+    $inview++;
+  }
+      }
+      if ($inview) {
+  $newform['form_editablefield_row'][$fn]=$form[$fn];
+      } else {
+  $newform['form_editablefield_other'][$fn]=$form[$fn];
+      }
+      //      unset($form[$fn]);
+    } else {
+      $newform[$fn]=$fi;
+    }
+  }
+  $form=$newform;
+
+    //if (!empty($form['#cache'])) {
+    // By not sending the form state, we avoid storing the storage which
+    // won't have been touched yet.
+    //    form_set_cache($form_build_id, $form, NULL);
+    //}
+  unset($form_state['post']);
+  $form['#post'] = $_POST;
+    
+  if ($process) {
+    drupal_process_form($form_id, $form, $form_state);
+  } 
+  
+  $viewfield_stack=$tmp;
+  return $form;  
+}
+
+function editablefields_form_alter($form_id, &$form) {
+  foreach ($form as $key=>$f) {
+    if (preg_match('/^editablefieldsfiltervalue_(.*)$/',$key, $matches)) {
+      $fieldname=$matches[1];
+      foreach ($form[$fieldname] as $element=>$val) {
+        if (is_array($val) && is_array($val['#default_value'])) {
+    $form[$fieldname][$element]['#default_value']=$f['#value'];
+    if (!$form[$fieldname][$element]['#options'][$f['#value'][0]]) {
+       $form[$fieldname][$element]['#options'][$f['#value'][0]]=t('-- this --');
+    }
+        }
+      }
+    }
+  }
+}
+
+

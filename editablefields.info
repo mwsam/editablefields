@@ -1,0 +1,14 @@
+; $Id$
+name = Editablefields
+description = "Allows you to make some view fields editable"
+dependencies = views
+package = Views
+version = "$Name$"
+
+
+
+; Information added by drupal.org packaging script on 2007-10-04
+version = "5.x-3.0"
+project = "editablefields"
+datestamp = "1191529802"
+
