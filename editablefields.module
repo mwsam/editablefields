@@ -1,13 +1,130 @@
 <?php
 // $Id$
 
-function editablefields_help($section = 'admin/help#editablefields') {
-  switch ($section) {
-    case 'admin/modules#description':
-      return t('Plugin for views to make some fields editable.');
-  }
-}
+/* TODO db_next_id() is gone, and replaced as db_last_insert_id()
+   Since db_next_id() introduce some problems, and the use of this function
+   can be replaced by database level auto increment handling, db_next_id()
+   is now gone and replaced as db_last_insert_id() with help of serial type
+   under Schema API (check out http://drupal.org/node/149176 for more details).
+   Please refer to drupal_write_record() as demonstration. */
 
+/* TODO FormAPI image buttons are now supported.
+   FormAPI now offers the 'image_button' element type, allowing developers to
+   use icons or other custom images in place of traditional HTML submit buttons.
+
+$form['my_image_button'] = array(
+  '#type'         => 'image_button',
+  '#title'        => t('My button'),
+  '#return_value' => 'my_data',
+  '#src'          => 'my/image/path.jpg',
+); */
+
+/* TODO Change 'Submit' to 'Save' on buttons
+   It has been agreed on that the description 'Submit' for a button is not a
+   good choice since it does not indicate what actually happens. While for
+   example on node editing forms, 'Preview' and 'Delete' describe exactly what
+   will happen when the user clicks on the button, 'Submit' only gives a vague
+   idea. When labelling your buttons, make sure that it is clear what this
+   button does when the user clicks on it. */
+
+/* TODO Node previews and adding form fields to the node form.
+   There is a subtle but important difference in the way node previews (and other
+   such operations) are carried out when adding or editing a node. With the new
+   Forms API, the node form is handled as a multi-step form. When the node form
+   is previewed, all the form values are submitted, and the form is rebuilt with
+   those form values put into $form['#node']. Thus, form elements that are added
+   to the node form will lose any user input unless they set their '#default_value'
+   elements using this embedded node object. */
+
+/* TODO New user_mail_tokens() method may be useful.
+   user.module now provides a user_mail_tokens() function to return an array
+   of the tokens available for the email notification messages it sends when
+   accounts are created, activated, blocked, etc. Contributed modules that
+   wish to make use of the same tokens for their own needs are encouraged
+   to use this function. */
+
+/* TODO
+   There is a new hook_watchdog in core. This means that contributed modules
+   can implement hook_watchdog to log Drupal events to custom destinations.
+   Two core modules are included, dblog.module (formerly known as watchdog.module),
+   and syslog.module. Other modules in contrib include an emaillog.module,
+   included in the logging_alerts module. See syslog or emaillog for an
+   example on how to implement hook_watchdog.
+function example_watchdog($log = array()) {
+  if ($log['severity'] == WATCHDOG_ALERT) {
+    mysms_send($log['user']->uid,
+      $log['type'],
+      $log['message'],
+      $log['variables'],
+      $log['severity'],
+      $log['referer'],
+      $log['ip'],
+      format_date($log['timestamp']));
+  }
+} */
+
+function editablefields_theme() {
+  return array(
+   'editablefields_formatter_editable' => array(
+      'arguments' => array('element' => NULL),
+    ),
+/*    'views_editablefields_handle_field' => array(
+      'file' => 'editablefields.module',
+      'arguments' => array(
+        'fields' => NULL,
+        'field' => NULL,
+        'data' => NULL,
+      ),
+    ),
+    'views_editablefields_view_list' => array(
+      'file' => 'editablefields.module',
+      'arguments' => array(
+        'view' => NULL,
+        'nodes' => NULL,
+        'type' => NULL,
+      ),
+    ),
+    'views_editablefields_view_table' => array(
+      'file' => 'editablefields.module',
+      'arguments' => array(
+        'view' => NULL,
+        'nodes' => NULL,
+        'type' => NULL,
+      ),
+    ),
+    'views_editablefields_view_list_noform' => array(
+      'file' => 'editablefields.module',
+      'arguments' => array(
+        'view' => NULL,
+        'nodes' => NULL,
+        'type' => NULL,
+      ),
+    ),
+    'views_editablefields_view_table_noform' => array(
+      'file' => 'editablefields.module',
+      'arguments' => array(
+        'view' => NULL,
+        'nodes' => NULL,
+        'type' => NULL,
+      ),
+    ),
+*/
+  );
+};
+
+
+/* TODO
+   An argument for replacements has been added to format_plural(),
+   escaping and/or theming the values just as done with t().*/
+
+/* TODO You may want to take advantage of new form-specific alter hooks.
+   The hook_form_alter() is complemented by hook_form_$form-id_alter().
+   Optionally, modules can implement form-specific alteration functions rather
+   than a single hook_form_alter() with many conditional switch statements.
+   This is optional, and is most useful for tidying the code of modules that
+   alter many forms to customize a site's operations.
+   The new function names are built using the following format:
+   [your-module-name]_form_[$form_id]_alter. */
 
 function editablefields_views_style_plugins() {
   $result = array(
@@ -54,7 +171,66 @@ function editablefields_field_formatter_info()
       ));
 }
 
+function theme_editablefields_formatter_editable($element)
+{
+  $field_name=$element['#field_name'];
+  $field = content_fields($field_name);
+  $node=$element['#node'];
 
+
+  // See if access to this form element is restricted,
+  // if so, skip widget processing and just set the value.
+  $access = TRUE;
+  $field_access = module_invoke_all('field_access', 'edit', $field);
+  foreach ($field_access as $value) {
+    if (empty($value)) {
+      $access = FALSE;
+    }
+  }
+  if (!$access) {
+    // can't edit
+    $formatter_name = 'default';
+    if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
+      $theme = $formatter['module'] .'_formatter_'. $formatter_name;
+      return theme($theme,$element);
+    }
+  } else {
+    $formatter_name = 'default';
+    if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
+      $theme = $formatter['module'] .'_formatter_'. $formatter_name;
+      return '<div class="ajaxeditable" nid="'.$node->nid.'" field="'.$field_name.'">'.
+        theme($theme,$element).
+        '</div>';
+    }
+  }
+  
+}
+function _editablefields_create_form($node,$field_name) 
+{
+  $field = content_fields($field_name);
+  
+  $fname="editablefields_tmp_form_".$node->nid."_".$field_name;
+  
+//  drupal_set_message($field_name." ". $field['field_name']);
+  
+  $form = array('#node' => $node);
+  $form_state = array('values' => array($field['field_name'] => $default_value));
+  module_load_include('inc', 'content', 'includes/content.node_form');
+  $form['#field_info'] = array($field['field_name'] => $field);
+  $form = content_field_form($form, $form_state, $field, 0);
+  unset($form[$field_name]['#title']);
+  
+  
+  $form['#type'] = 'form';
+  $form['#field_info'] = array($field['field_name'] => $field);
+
+  
+//  drupal_set_message(str_replace(" ","&nbsp;",str_replace("\n","<br>",print_r($form,TRUE))));
+  $form=form_builder($fname,$form, $form_state);
+
+  
+  return drupal_render($form);
+}
 
 
 
@@ -254,7 +430,9 @@ function theme_views_editablefields_handle_field($fields, $field, $data) {
         }
         
         $form=_editablefields_make_form_ids_unique($form,$data->nid);
-        $form=form_builder('editableviewfield',$form);
+/* TODO form_builder() now accepts a form_state parameter. */
+	$form_state = array();
+        $form=form_builder('editableviewfield',$form, $form_state);
         
         return $form="<div class=\"ajaxeditable noonload\" nid=\"".$data->nid."\" field=\"".$info['content_field']['field_name']."\">".drupal_render_form('editableviewfield',$form)."</div>";
       } // no access, so silently just print field out.
@@ -268,7 +446,9 @@ function theme_views_editablefields_handle_field($fields, $field, $data) {
           $form['editablefield_'. $data->nid .'_'. $field['field']] = $node_form;
         }
         $form = _editablefields_make_form_ids_unique($form, $data->nid);
-        $form = form_builder('editableviewfield', $form);
+/* TODO form_builder() now accepts a form_state parameter. */
+	$form_state = array();
+        $form = form_builder('editableviewfield', $form, $form_state);
         return $form = drupal_render_form('editableviewfield', $form);
       }
     } else {
@@ -493,7 +673,8 @@ function _editablefields_drupal_get_form($process=false, $type,$view) {
   $form_state = array('storage' => NULL, 'submitted' => FALSE);
 
   $form_state['post'] = $_POST;
-  $form=drupal_retrieve_form($form_id,$node);
+/* TODO drupal_retrieve_form() now accepts a form_state parameter. */
+  $form=drupal_retrieve_form($form_id,$node, $form_state);
   drupal_prepare_form($form_id, $form, $form_state);
   $form_build_id = 'form-'. md5(mt_rand());
   $form['#build_id'] = $form_build_id;
@@ -576,7 +757,7 @@ function _editablefields_drupal_get_form($process=false, $type,$view) {
   return $form;  
 }
 
-function editablefields_form_alter($form_id, &$form) {
+function editablefields_form_alter(&$form, &$form_state, $form_id) {
   foreach ($form as $key=>$f) {
     if (preg_match('/^editablefieldsfiltervalue_(.*)$/',$key, $matches)) {
       $fieldname=$matches[1];
