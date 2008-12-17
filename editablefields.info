@@ -2,7 +2,9 @@
 name = Editablefields
 description = "Allows you to make some view fields editable"
 dependencies[] = views
-package = Views
+dependencies[] = content
+dependencies[] = ajaxeditable
+package = CCK
 version = "$Name$"
 
 core = 6.x
