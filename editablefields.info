@@ -1,9 +1,8 @@
 ; $Id$
 name = Editablefields
 description = "Allows you to make some view fields editable"
-dependencies[] = views
 dependencies[] = content
-dependencies[] = ajaxeditable
+dependencies[] = ajax_load
 package = CCK
 version = "$Name$"
 
