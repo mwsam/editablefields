@@ -2,7 +2,7 @@
 editablefields = function() {
   $('div.editablefields').not('.noonload').each(function() {
                                                 $(this).children().css( 'opacity', '0.3' ); 
-                                                editablefieldsload(this,"/editablefields_html/"+$(this).attr("nid")+"/"+$(this).attr("field"));
+                                                editablefieldsload(this,"?q=/editablefields_html/"+$(this).attr("nid")+"/"+$(this).attr("field"));
                                               });
 
 
@@ -19,12 +19,12 @@ editablefieldsupdater = function(element)
   
   $.ajax({
   type: "POST",
-        url: "/editablefields_submit",
+        url: "?q=/editablefields_submit",
         data: $(element).find('form').serialize()+"&nid="+nid,
         element: $(element),
         success: function(msg){
             updateValue=0;
-            editablefieldsload($(this.element),"/editablefields_html/"+$(this.element).attr("nid")+"/"+$(this.element).attr("field"));
+            editablefieldsload($(this.element),"?q=/editablefields_html/"+$(this.element).attr("nid")+"/"+$(this.element).attr("field"));
       },
         error: function(msg){
         alert( "Error, unable to make update: " + msg.responseText );
