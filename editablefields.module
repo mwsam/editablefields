@@ -1,132 +1,136 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Editable fields module.
+ */
 
-function editablefields_init() 
-{
+/**
+ * Implementation of hook_init().
+ */
+function editablefields_init() {
   drupal_add_js(drupal_get_path('module', 'editablefields') . '/editablefields.js');
   drupal_add_js('misc/jquery.form.js');
 }
 
+/**
+ * Implementation of hook_menu().
+ */
 function editablefields_menu() {
   global $user;
-  
   $items = array();
 
-    // Admin pages:
-
+  // Admin pages:
   $items['editablefields_html'] = array(
     'page callback' => 'editablefields_html',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'title' => 'ajax form',
-    );
+  );
   $items['editablefields_submit'] = array(
     'page callback' => 'editablefields_submit',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'title' => 'ajax submit',
-    );
+  );
 
   return $items;
 }
 
+/**
+ * Implementation of hook_theme().
+ */
 function editablefields_theme() {
   return array(
    'editablefields_formatter_editable' => array(
       'arguments' => array('element' => NULL),
     ),
   );
-};
-
-
-function editablefields_field_formatter_info()
-{
-  return array(
-    'editable' => array(
-      'label' => 'Editable',
-      'field types' => array_keys(_content_field_types()),
-      ));
 }
 
-function theme_editablefields_formatter_editable($element)
-{
-  $field_name=$element['#field_name'];
-  $field = content_fields($field_name);
-  $node=$element['#node'];
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function editablefields_field_formatter_info() {
+  return array(
+    'editable' => array(
+      'label' => t('Editable'),
+      'field types' => array_keys(_content_field_types()),
+    ),
+  );
+}
 
+/**
+ * Theme the editable field.
+ */
+function theme_editablefields_formatter_editable($element) {
+  $field_name = $element['#field_name'];
+  $field = content_fields($field_name);
+  $node = $element['#node'];
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
-  $access = TRUE;
-  $field_access = module_invoke_all('field_access', 'edit', $field);
-  foreach ($field_access as $value) {
-    if (empty($value)) {
-      $access = FALSE;
-    }
-  }
-  if (!$access) {
+  if (!content_access('edit', $field)) {
     // can't edit
     $formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
       $theme = $formatter['module'] .'_formatter_'. $formatter_name;
-      return theme($theme,$element);
+      return theme($theme, $element);
     }
-  } else {
+  }
+  else {
     $formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
       $theme = $formatter['module'] .'_formatter_'. $formatter_name;
-      return '<div class="editablefields" nid="'.$node->nid.'" field="'.$field_name.'">'.
-        theme($theme,$element).
-        '</div>';
+      return '<div class="editablefields" nid="'. $node->nid .'" field="'. $field_name. '">'. theme($theme, $element) .'</div>';
     }
   }
-  
 }
 
-
+/**
+ * Implementation of hook_forms().
+ */
 function editablefields_forms() {
+  $forms = array();
   $forms['editablefields_form'] = array(
     'callback' => 'editablefields_form_builder',
-//    'callback arguments' => array('node','field_name'),
+//    'callback arguments' => array('node', 'field_name'),
   );
   return $forms;
 }
 
-
-function editablefields_form_builder(&$form_state, $node,$field_name) 
-{
+/**
+ * Form builder callback.
+ */
+function editablefields_form_builder(&$form_state, $node, $field_name) {
   $field = content_fields($field_name);
-  
+
   $form = array('#node' => $node);
   $form_state = array('values' => array($field['field_name'] => $default_value));
   module_load_include('inc', 'content', 'includes/content.node_form');
   $form['#field_info'] = array($field['field_name'] => $field);
   $form = content_field_form($form, $form_state, $field, 0);
-  
+
   unset($form[$field_name]['#title']);
   if (is_array($form[$field_name][0]) && !is_array($form[$field_name][1])) {
     unset($form[$field_name][0]['#title']);
   }
-  
+
   $form['#field_info'] = array($field['field_name'] => $field);
   return $form;
 }
 
-
-
-
-
-function editablefields_html()
-{
-  $nid=arg(1);
-  $field=arg(2);
-  $node=node_load($nid);
-  if (node_access("update",$node)) {
-
-    //  $html=_editablefields_create_form($node,$field);
-   $html=drupal_get_form('editablefields_form',$node,$field);
-    
+/**
+ * Menu callback: ajax form.
+ */
+function editablefields_html() {
+  $nid = arg(1);
+  $field = arg(2);
+  $node = node_load($nid);
+  if (node_access('update', $node)) {
+    //  $html = _editablefields_create_form($node, $field);
+    $html = drupal_get_form('editablefields_form', $node, $field);
     $object = new StdClass();
     $object->content = $html;
     // Register the JavaScript callback for this module.
@@ -134,49 +138,43 @@ function editablefields_html()
     // Allow other modules to extend the data returned.
     drupal_alter('ajax_data', $object, 'editablefields', $html);
     drupal_json($object);
-
-  } else {
+  }
+  else {
     drupal_not_found();
   }
   exit();
 }
 
+/**
+ * Menu callback: ajax submit.
+ */
+function editablefields_submit() {
+  $nid = $_POST['nid'];
+  $node = node_load($nid);
 
-function editablefields_submit()//$form, &$form_state)
-{
-  
-  $nid=$_POST["nid"];
-  $node=node_load($nid);
-
-  if (node_access("update",$node)) {
-    $form_state=array('values'=>$_POST);
-    foreach ($_POST as $field=>$value) {
+  if (node_access('update', $node)) {
+    $form_state = array('values' => $_POST);
+    foreach ($_POST as $field => $value) {
       if (is_array($node->{$field})) {
-        $err=drupal_execute('editablefields_form',$form_state,$node,$field);
+        $err = drupal_execute('editablefields_form', $form_state, $node, $field);
         if ($err) {
           drupal_set_header('HTTP/1.1 404 Not Found');
-          print (t("Error handling submition").$err);
+          print t('Error handling submition') . $err;
           exit();
         }
-        
         if ($node->{$field} != $form_state['values'][$field]) {
           $node->{$field} = $form_state['values'][$field];
-          $update=1;
+          $update = 1;
         }
       }
     }
     if ($update) {
       node_save($node);
     }
-  } else {
-    drupal_set_header('HTTP/1.1 404 Not Found');
-    print "No write permissions for $field";
   }
-  
-
+  else {
+    drupal_set_header('HTTP/1.1 404 Not Found');
+    print t('No write permissions for %field', array('%field' => $field));
+  }
   exit();
 }
-
-
-
-?>
