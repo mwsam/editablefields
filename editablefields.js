@@ -1,75 +1,66 @@
 // $Id$
 
-Drupal.behaviors.editablefields = function(context) {  
-  $('div.editablefields',context).not('.noonload').each(function() {
-                                                          $(this).children().css('opacity', '0.3');
-                                                          editablefieldsload(this, Drupal.settings.basePath+"?q=/editablefields_html/" + $(this).attr("nid") + "/" + $(this).attr("field"));
-                                                        });
-  $('div.editablefields',context).change(editablefieldschanger);
-  $('div.editablefields',context).submit(editablefieldschanger);
-  
-  
-  var updateValue;
-  
-  function editablefieldsupdater(element) {
-    var nid=$(element).attr("nid");
-    var field=$(element).attr("field");
-    $(element).children().css('opacity', '0.3');
-    $.ajax({
-    type: "POST",
-          url: "?q=/editablefields_submit",
-          data: $(element).find('form').serialize()+"&nid="+nid+"&field="+field,
-          element: $(element),
-          success: function(msg) {
-          updateValue = 0;
-          editablefieldsload($(this.element), Drupal.settings.basePath+"?q=/editablefields_html/" + $(this.element).attr("nid") + "/" + $(this.element).attr("field"));
-        },
-          error: function(msg) {
-          alert( "Error, unable to make update: " + msg.responseText);
-        }
-      });
-  };
-  
-  function editablefieldsload(e, url) {
-    $(e).ajaxSubmit({
-    url: url,
-          type: 'GET',
-          success: function(response) {
-          // Call all callbacks.
-          if (response.__callbacks) {
-            $.each(response.__callbacks, function(i, callback) {
-                     eval(callback)(e, response);
-                   });
-          }
-          $(e).html(response.content);
-          Drupal.attachBehaviors(e);
-          $(e).find(':input').change(editablefieldschanger);
-          $(e).find(':input').submit(editablefieldschanger);
-        },
-          error: function(response) {
-          alert(Drupal.t("An error occurred at ") + url);
-        },
-          dataType: 'json'
-          });
-  }
-  
-  function editablefieldschanger() {
-    var t=this;
-    
-    if (!$(this).hasClass('editablefields')) {
-      t = $(this).parents('div.editablefields');
-    }
-    
-    newValue = $(t).find('form').serialize();
-    
-// all this does is prevent you from submitting the same data twice... If in the
-// meantime the user hits a different button, then, I guess the user knows what
-// they want.
-    if (newValue != updateValue) {
-      updateValue = newValue;
-      editablefieldsupdater($(t));
-    }
-    return false; // dont actually submit
-  };
+Drupal.behaviors.editablefields = function(context) {
+  $('div.editablefields', context).not('.editablefields-processed').each(function() {
+    $(this).addClass('.editablefields-processed');
+    Drupal.editablefields.load(this);
+  });
 };
 
+Drupal.editablefields = {};
+
+Drupal.editablefields.load = function(element) {
+  var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field");
+  $.ajax({
+    url: url,
+    type: 'GET',
+    success: function(response) {
+      // Call all callbacks.
+      if (response.__callbacks) {
+        $.each(response.__callbacks, function(i, callback) {
+          eval(callback)(element, response);
+        });
+      }
+      $(element).html(response.content);
+      Drupal.attachBehaviors(element);
+      $(element).find(':input').change(function() {
+        Drupal.editablefields.onchange(this);
+      });
+    },
+    error: function(response) {
+      alert(Drupal.t("An error occurred at ") + url);
+    },
+    dataType: 'json'
+  });
+};
+
+Drupal.editablefields.onchange = function(element) {
+  if (!$(element).hasClass('editablefields')) {
+    element = $(element).parents('div.editablefields');
+  }
+
+  // Provide some feedback to the user while the form if being processed.
+  $(element).children().css('opacity', '0.5');
+
+  // Send the field form.
+  $.ajax({
+    type: "POST",
+    url: Drupal.settings.editablefields.url_submit,
+    data: $(element).find('form').serialize() + "&nid=" + $(element).attr("nid") + "&field=" + $(element).attr("field"),
+    element: $(element),
+    success: function(msg) {
+      Drupal.editablefields.load(element);
+    },
+    error: function(msg) {
+      alert(Drupal.t("Error, unable to make update:") +" "+ msg.responseText);
+    }
+  });
+
+  // Ensure same changes are not submitted more than once.
+  $(element).find(':input').each(function() {
+    $(this).attr("disabled", true);
+  });
+
+  // Do not actually submit.
+  return false;
+};
