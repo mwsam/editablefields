@@ -37,6 +37,11 @@ function editablefields_theme() {
   return array(
    'editablefields_formatter_editable' => array(
       'arguments' => array('element' => NULL),
+      'function' => 'theme_editablefields_formatter_editable',
+     ),
+    'editablefields_formatter_clicktoedit' => array(
+      'arguments' => array('element' => NULL),
+      'function' => 'theme_editablefields_formatter_editable',
     ),
   );
 }
@@ -49,8 +54,12 @@ function editablefields_field_formatter_info() {
     'editable' => array(
       'label' => t('Editable'),
       'field types' => array_keys(_content_field_types()),
-    ),
-  );
+      ),
+    'clicktoedit' => array(
+      'label' => t('Click to Edit'),
+      'field types' => array_keys(_content_field_types()),
+      ),
+    );
 }
 
 /**
@@ -87,7 +96,11 @@ function theme_editablefields_formatter_editable($element) {
         drupal_add_js(array('editablefields' => $settings), 'setting');
       }
       $theme = $formatter['module'] .'_formatter_'. $formatter_name;
-      return '<div class="editablefields" nid="'. $node->nid .'" field="'. $field_name. '">'. theme($theme, $element) .'</div>';
+      $class="editablefields";
+      if ($element['#formatter'] == 'clicktoedit') {
+        $class.=" clicktoedit";
+      }
+      return '<div class="'.$class.'" nid="'. $node->nid .'" field="'. $field_name. '">'. theme($theme, $element) .'</div>';
     }
   }
 }
