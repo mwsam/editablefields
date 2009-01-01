@@ -1,24 +1,24 @@
 // $Id$
 
-Drupal.behaviors.editablefields = function(context) {
-  
+Drupal.behaviors.editablefields = function(context) {  
   $('div.editablefields',context).not('.noonload').each(function() {
-    $(this).children().css('opacity', '0.3');
-    editablefieldsload(this, Drupal.settings.basePath+"?q=/editablefields_html/" + $(this).attr("nid") + "/" + $(this).attr("field"));
-  });
+                                                          $(this).children().css('opacity', '0.3');
+                                                          editablefieldsload(this, Drupal.settings.basePath+"?q=/editablefields_html/" + $(this).attr("nid") + "/" + $(this).attr("field"));
+                                                        });
   $('div.editablefields',context).change(editablefieldschanger);
   $('div.editablefields',context).submit(editablefieldschanger);
-
-
+  
+  
   var updateValue;
   
   function editablefieldsupdater(element) {
     var nid=$(element).attr("nid");
+    var field=$(element).attr("field");
     $(element).children().css('opacity', '0.3');
     $.ajax({
     type: "POST",
           url: "?q=/editablefields_submit",
-          data: $(element).find('form').serialize()+"&nid="+nid,
+          data: $(element).find('form').serialize()+"&nid="+nid+"&field="+field,
           element: $(element),
           success: function(msg) {
           updateValue = 0;
@@ -61,6 +61,7 @@ Drupal.behaviors.editablefields = function(context) {
     }
     
     newValue = $(t).find('form').serialize();
+    
 // all this does is prevent you from submitting the same data twice... If in the
 // meantime the user hits a different button, then, I guess the user knows what
 // they want.

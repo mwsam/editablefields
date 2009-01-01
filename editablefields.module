@@ -150,26 +150,26 @@ function editablefields_html() {
  */
 function editablefields_submit() {
   $nid = $_POST['nid'];
+  $field = $_POST['field'];
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
     $form_state = array('values' => $_POST);
-    foreach ($_POST as $field => $value) {
-      if (is_array($node->{$field})) {
-        $err = drupal_execute('editablefields_form', $form_state, $node, $field);
-        if ($err) {
-          drupal_set_header('HTTP/1.1 404 Not Found');
-          print t('Error handling submition') . $err;
-          exit();
-        }
-        if ($node->{$field} != $form_state['values'][$field]) {
-          $node->{$field} = $form_state['values'][$field];
-          $update = 1;
-        }
+    $value=$_POST[$field];
+    if (is_array($node->{$field})) {
+      $err = drupal_execute('editablefields_form', $form_state, $node, $field);
+      if ($err) {
+        drupal_set_header('HTTP/1.1 404 Not Found');
+        print t('Error handling submition') . $err;
+        exit();
       }
-    }
-    if ($update) {
-      node_save($node);
+      if ($node->{$field} != $form_state['values'][$field]) {
+        $node->{$field} = $form_state['values'][$field];
+        node_save($node);
+      }
+    } else {
+      drupal_set_header('HTTP/1.1 404 Not Found');
+      print t('No field found, of name: %field', array('%field' => $field));
     }
   }
   else {
