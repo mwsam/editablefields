@@ -12,21 +12,21 @@
 function editablefields_menu() {
   global $user;
   $items = array();
-
+  
   // Admin pages:
   $items['editablefields_html'] = array(
     'page callback' => 'editablefields_html',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'title' => 'ajax form',
-  );
+    );
   $items['editablefields_submit'] = array(
     'page callback' => 'editablefields_submit',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'title' => 'ajax submit',
-  );
-
+    );
+  
   return $items;
 }
 
@@ -35,15 +35,15 @@ function editablefields_menu() {
  */
 function editablefields_theme() {
   return array(
-   'editablefields_formatter_editable' => array(
+    'editablefields_formatter_editable' => array(
       'arguments' => array('element' => NULL),
       'function' => 'theme_editablefields_formatter_editable',
-     ),
+      ),
     'editablefields_formatter_clicktoedit' => array(
       'arguments' => array('element' => NULL),
       'function' => 'theme_editablefields_formatter_editable',
-    ),
-  );
+      ),
+    );
 }
 
 /**
@@ -89,6 +89,8 @@ function theme_editablefields_formatter_editable($element) {
         $js_ready = TRUE;
         drupal_add_js('misc/jquery.form.js');
         drupal_add_js(drupal_get_path('module', 'editablefields') . '/editablefields.js');
+        drupal_add_css(drupal_get_path('module', 'editablefields') .'/editablefields.css');
+
         $settings = array(
           'url_html' => url('editablefields_html', array('absolute' => TRUE)),
           'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),

@@ -9,18 +9,28 @@ Drupal.behaviors.editablefields = function(context) {
                                                                                                   $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
                                                                                                   $(this).click(Drupal.editablefields.init);
                                                                                                 });
-};
+  $('div.editablefields',context).not(',editablefields-processed').submit(function(){
+                                                                            return false;
+                                                                          });
+}
+  
 
 Drupal.editablefields = {};
 
 Drupal.editablefields.init = function() {
   $(this).unbind("click",Drupal.editablefields.init);
   $(this).addClass('.editablefields-processed');
-  $(this).children().css('opacity', '0.5');
+  $(this).children().hide();
   Drupal.editablefields.load(this);
 }
   
 Drupal.editablefields.load = function(element) {
+  newDiv = document.createElement("div");
+  $(newDiv).addClass('editablefields_throbber');
+  $(newDiv).width($(element).width());
+  $(newDiv).height($(element).height());
+  $(element).prepend($(newDiv));
+  
   var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field");
   $.ajax({
     url: url,
@@ -51,8 +61,15 @@ Drupal.editablefields.onchange = function(element) {
   }
 
   // Provide some feedback to the user while the form if being processed.
-  $(element).children().css('opacity', '0.5');
+//  $(element).children().css('opacity', '0.5');
 
+  newDiv = document.createElement("div");
+  $(newDiv).addClass('editablefields_throbber');
+  $(newDiv).width($(element).width());
+  $(newDiv).height($(element).height());
+  $(element).before($(newDiv));
+  $(element).addClass('editablefields_greyed');
+  
   // Send the field form.
   $.ajax({
     type: "POST",
