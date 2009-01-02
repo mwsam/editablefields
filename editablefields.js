@@ -1,17 +1,17 @@
 // $Id$
 
 Drupal.behaviors.editablefields = function(context) {
-  $('div.editablefields', context).not('.clicktoedit').not('.editablefields-processed').each(function() {  
-                                                                                               $(this).addClass('.editablefields-processed');
-                                                                                               Drupal.editablefields.load(this);
-                                                                                             });
+  $('div.editablefields', context).not('.clicktoedit').not('.editablefields-processed').each(function() {
+     $(this).addClass('.editablefields-processed');
+     Drupal.editablefields.load(this);
+  });
   $('div.editablefields', context).filter('.clicktoedit').not('.editablefields-processed').each(function() {
-                                                                                                  $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
-                                                                                                  $(this).click(Drupal.editablefields.init);
-                                                                                                });
+     $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
+     $(this).click(Drupal.editablefields.init);
+  });
   $('div.editablefields',context).not(',editablefields-processed').submit(function(){
-                                                                            return false;
-                                                                          });
+     return false;
+  });
 }
   
 
