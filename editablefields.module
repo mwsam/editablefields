@@ -71,7 +71,8 @@ function theme_editablefields_formatter_editable($element) {
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
   $node = $element['#node'];
-
+  $delta = $element['#item']['#delta'];
+  
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
   if (!content_access('edit', $field)) {
@@ -103,7 +104,7 @@ function theme_editablefields_formatter_editable($element) {
       if ($element['#formatter'] == 'clicktoedit') {
         $class.=" clicktoedit";
       }
-      return '<div class="'.$class.'" nid="'. $node->nid .'" field="'. $field_name. '">'. theme($theme, $element) .'</div>';
+      return '<div class="'.$class.'" nid="'. $node->nid .'" field="'. $field_name. '" delta="'.$delta.'">'. theme($theme, $element) .'</div>';
     }
   }
 }
@@ -123,14 +124,14 @@ function editablefields_forms() {
 /**
  * Form builder callback.
  */
-function editablefields_form_builder(&$form_state, $node, $field_name) {
+function editablefields_form_builder(&$form_state, $node, $field_name,$delta) {
   $field = content_fields($field_name);
 
   $form = array('#node' => $node);
   $form_state = array('values' => array($field['field_name'] => $default_value));
   module_load_include('inc', 'content', 'includes/content.node_form');
   $form['#field_info'] = array($field['field_name'] => $field);
-  $form = content_field_form($form, $form_state, $field, 0);
+  $form = content_field_form($form, $form_state, $field, $delta);
 
   unset($form[$field_name]['#title']);
   if (is_array($form[$field_name][0]) && !is_array($form[$field_name][1])) {
@@ -147,10 +148,12 @@ function editablefields_form_builder(&$form_state, $node, $field_name) {
 function editablefields_html() {
   $nid = arg(1);
   $field_name = arg(2);
+  $delta=arg(3);
   $node = node_load($nid);
+  
   if (node_access('update', $node)) {
     //  $html = _editablefields_create_form($node, $field_name);
-    $html = drupal_get_form('editablefields_form', $node, $field_name);
+    $html = drupal_get_form('editablefields_form', $node, $field_name,$delta);
     $object = new StdClass();
     $object->content = $html;
     // Register the JavaScript callback for this module.
@@ -171,22 +174,28 @@ function editablefields_html() {
 function editablefields_submit() {
   $nid = $_POST['nid'];
   $field_name = $_POST['field'];
+  $delta=$_POST['delta'];
+  
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
     if (!isset($_POST[$field_name])) {
       $_POST[$field_name] = array('value' => NULL);
     }
+    
     $form_state = array('values' => $_POST);
+    
     if (is_array($node->{$field_name})) {
-      $err = drupal_execute('editablefields_form', $form_state, $node, $field_name);
+      $err = drupal_execute('editablefields_form', $form_state, $node, $field_name,$delta);
+      
       if ($err) {
         drupal_set_header('HTTP/1.1 404 Not Found');
         print t('Error handling submition') . $err;
         exit();
       }
-      if ($node->{$field_name} != $form_state['values'][$field_name]) {
-        $node->{$field_name} = $form_state['values'][$field_name];
+
+      if ($node->{$field_name}[$delta]!=$form_state['values'][$field_name][0]) {
+        $node->{$field_name}[$delta]=$form_state['values'][$field_name][0];
         node_save($node);
       }
     }

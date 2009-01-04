@@ -31,7 +31,7 @@ Drupal.editablefields.load = function(element) {
   $(newDiv).height($(element).height());
   $(element).prepend($(newDiv));
   
-  var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field");
+  var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field")+ "/" + $(element).attr("delta");
   $.ajax({
     url: url,
     type: 'GET',
@@ -72,18 +72,18 @@ Drupal.editablefields.onchange = function(element) {
   
   // Send the field form.
   $.ajax({
-    type: "POST",
-    url: Drupal.settings.editablefields.url_submit,
-    data: $(element).find('form').serialize() + "&nid=" + $(element).attr("nid") + "&field=" + $(element).attr("field"),
-    element: $(element),
-    success: function(msg) {
-      Drupal.editablefields.load(element);
-    },
-    error: function(msg) {
-      alert(Drupal.t("Error, unable to make update:") +" "+ msg.responseText);
-    }
-  });
-
+     type: "POST",
+     url: Drupal.settings.editablefields.url_submit, 
+     data: $(element).find('form').serialize() + "&nid=" + $(element).attr("nid") + "&field=" + $(element).attr("field")+ "&delta=" + $(element).attr("delta"),
+     element: $(element),
+     success: function(msg) {
+        Drupal.editablefields.load(element);
+     },
+     error: function(msg) {
+        alert(Drupal.t("Error, unable to make update:") +" "+ msg.responseText);
+     }
+    });
+  
   // Ensure same changes are not submitted more than once.
   $(element).find(':input').each(function() {
     $(this).attr("disabled", true);
