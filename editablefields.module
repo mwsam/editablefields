@@ -186,14 +186,20 @@ function editablefields_submit() {
     $form_state = array('values' => $_POST);
 
     if (is_array($node->{$field_name})) {
-      $err = drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
+      drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
 
-      if ($err) {
+      $err=drupal_get_messages();
+      if (count($err)>0) {
         drupal_set_header('HTTP/1.1 404 Not Found');
-        print t('Error handling submition') . $err;
+        // format the error message suitable for a popup window in simple text.
+        foreach ($err as $type=>$messages) {
+          foreach ($messages as $message) {
+            print $type .' : '. $message ."\n";
+          }
+        }
         exit();
       }
-
+        
       if ($node->{$field_name}[$delta]!=$form_state['values'][$field_name][0]) {
         $node->{$field_name}[$delta]=$form_state['values'][$field_name][0];
         node_save($node);

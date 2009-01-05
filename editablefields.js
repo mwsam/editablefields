@@ -67,7 +67,7 @@ Drupal.editablefields.onchange = function(element) {
   $(newDiv).addClass('editablefields_throbber');
   $(newDiv).width($(element).width());
   $(newDiv).height($(element).height());
-  $(element).before($(newDiv));
+  $(element).prepend($(newDiv));
   $(element).addClass('editablefields_greyed');
   
   // Send the field form.
@@ -80,7 +80,8 @@ Drupal.editablefields.onchange = function(element) {
         Drupal.editablefields.load(element);
      },
      error: function(msg) {
-        alert(Drupal.t("Error, unable to make update:") +" "+ msg.responseText);
+        alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
+        Drupal.editablefields.load(element);
      }
     });
   
