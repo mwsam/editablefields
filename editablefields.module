@@ -12,7 +12,7 @@
 function editablefields_menu() {
   global $user;
   $items = array();
-  
+
   // Admin pages:
   $items['editablefields_html'] = array(
     'page callback' => 'editablefields_html',
@@ -26,7 +26,7 @@ function editablefields_menu() {
     'type' => MENU_CALLBACK,
     'title' => 'ajax submit',
     );
-  
+
   return $items;
 }
 
@@ -72,7 +72,7 @@ function theme_editablefields_formatter_editable($element) {
   $field = content_fields($field_name);
   $node = $element['#node'];
   $delta = $element['#item']['#delta'];
-  
+
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
   if (!content_access('edit', $field)) {
@@ -150,7 +150,7 @@ function editablefields_html() {
   $field_name = arg(2);
   $delta=arg(3);
   $node = node_load($nid);
-  
+
   if (node_access('update', $node)) {
     //  $html = _editablefields_create_form($node, $field_name);
     $html = drupal_get_form('editablefields_form', $node, $field_name, $delta);
@@ -175,19 +175,19 @@ function editablefields_submit() {
   $nid = $_POST['nid'];
   $field_name = $_POST['field'];
   $delta=$_POST['delta'];
-  
+
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
     if (!isset($_POST[$field_name])) {
       $_POST[$field_name] = array('value' => NULL);
     }
-    
+
     $form_state = array('values' => $_POST);
-    
+
     if (is_array($node->{$field_name})) {
       $err = drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
-      
+
       if ($err) {
         drupal_set_header('HTTP/1.1 404 Not Found');
         print t('Error handling submition') . $err;
