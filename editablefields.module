@@ -198,7 +198,6 @@ function editablefields_submit() {
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
-    
       
     if (!isset($_POST[$field_name])) {
       $_POST[$field_name] = array();
@@ -221,14 +220,6 @@ function editablefields_submit() {
         exit();
       }
 
-//      drupal_set_header('HTTP/1.1 404 Not Found');
-//      print_r($_POST);
-//      print_r($node->{$field_name});
-//      print_r($form_state['values']);
-  
-//      exit(1);
-      
-
       $field = content_fields($field_name);
       if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
         if ($node->{$field_name}[$delta]!=$form_state['values'][$field_name][0]) {
@@ -241,7 +232,8 @@ function editablefields_submit() {
           node_save($node);
         }
       }
-      
+      // make sure sensible headers etc are sent...
+      drupal_set_header('Content-Type: text; charset=utf-8');
     }
     else {
       drupal_set_header('HTTP/1.1 404 Not Found');
