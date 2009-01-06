@@ -73,6 +73,12 @@ function theme_editablefields_formatter_editable($element) {
   $node = $element['#node'];
   $delta = $element['#item']['#delta'];
 
+
+  if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
+  }
+    
+  
+
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
   if (!content_access('edit', $field)) {
@@ -104,7 +110,20 @@ function theme_editablefields_formatter_editable($element) {
       if ($element['#formatter'] == 'clicktoedit') {
         $class .=" clicktoedit";
       }
-      return '<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">'. theme($theme, $element) .'</div>';
+      // CORE handling shoudl have a div on each,
+      // MODULE handling should have a div surounding all elements (treat it as
+      // one field)
+      $pre='<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">';
+      $post='</div>';
+      if (content_handle('widget', 'multiple values', $field) != CONTENT_HANDLE_CORE) {
+        if ($delta!=0) {
+          $pre=''; 
+        }
+        if ($delta!=count($node->{$field_name})-1) {
+          $post='';
+        }
+      }
+      return $pre . theme($theme, $element) . $post;
     }
   }
 }
@@ -128,7 +147,7 @@ function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
   $field = content_fields($field_name);
 
   $form = array('#node' => $node);
-  $form_state = array('values' => array($field['field_name'] => $default_value));
+//  $form_state = array('values' => array($field['field_name'] => $default_value));
   module_load_include('inc', 'content', 'includes/content.node_form');
   $form['#field_info'] = array($field['field_name'] => $field);
   $form = content_field_form($form, $form_state, $field, $delta);
@@ -179,8 +198,10 @@ function editablefields_submit() {
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
+    
+      
     if (!isset($_POST[$field_name])) {
-      $_POST[$field_name] = array('value' => NULL);
+      $_POST[$field_name] = array();
     }
 
     $form_state = array('values' => $_POST);
@@ -199,11 +220,28 @@ function editablefields_submit() {
         }
         exit();
       }
-        
-      if ($node->{$field_name}[$delta]!=$form_state['values'][$field_name][0]) {
-        $node->{$field_name}[$delta]=$form_state['values'][$field_name][0];
-        node_save($node);
+
+//      drupal_set_header('HTTP/1.1 404 Not Found');
+//      print_r($_POST);
+//      print_r($node->{$field_name});
+//      print_r($form_state['values']);
+  
+//      exit(1);
+      
+
+      $field = content_fields($field_name);
+      if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
+        if ($node->{$field_name}[$delta]!=$form_state['values'][$field_name][0]) {
+          $node->{$field_name}[$delta]=$form_state['values'][$field_name][0];
+          node_save($node);
+        }
+      } else {
+        if ($node->{$field_name}!=$form_state['values'][$field_name]) {
+          $node->{$field_name}=$form_state['values'][$field_name];
+          node_save($node);
+        }
       }
+      
     }
     else {
       drupal_set_header('HTTP/1.1 404 Not Found');
