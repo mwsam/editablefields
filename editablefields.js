@@ -25,12 +25,8 @@ Drupal.editablefields.init = function() {
 }
   
 Drupal.editablefields.load = function(element) {
-  newDiv = document.createElement("div");
-  $(newDiv).addClass('editablefields_throbber');
-  $(newDiv).width($(element).width());
-  $(newDiv).height($(element).height());
-  $(element).prepend($(newDiv));
-  
+  $(element).addClass('editablefields_throbber');
+
   var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field")+ "/" + $(element).attr("delta");
   $.ajax({
     url: url,
@@ -47,9 +43,11 @@ Drupal.editablefields.load = function(element) {
       $(element).find(':input').change(function() {
         Drupal.editablefields.onchange(this);
       });
+      $(element).removeClass('editablefields_throbber');
     },
     error: function(response) {
       alert(Drupal.t("An error occurred at ") + url);
+      $(element).removeClass('editablefields_throbber');
     },
     dataType: 'json'
   });
@@ -61,15 +59,8 @@ Drupal.editablefields.onchange = function(element) {
   }
 
   // Provide some feedback to the user while the form if being processed.
-//  $(element).children().css('opacity', '0.5');
+  $(element).addClass('editablefields_throbber');
 
-  newDiv = document.createElement("div");
-  $(newDiv).addClass('editablefields_throbber');
-  $(newDiv).width($(element).width());
-  $(newDiv).height($(element).height());
-  $(element).prepend($(newDiv));
-  $(element).addClass('editablefields_greyed');
-  
   // Send the field form.
   $.ajax({
      type: "POST",
@@ -77,10 +68,12 @@ Drupal.editablefields.onchange = function(element) {
      data: $(element).find('form').serialize() + "&nid=" + $(element).attr("nid") + "&field=" + $(element).attr("field")+ "&delta=" + $(element).attr("delta"),
      element: $(element),
      success: function(msg) {
+        $(element).removeClass('editablefields_throbber');
         Drupal.editablefields.load(element);
      },
      error: function(msg) {
         alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
+        $(element).removeClass('editablefields_throbber');
         Drupal.editablefields.load(element);
      }
     });

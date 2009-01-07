@@ -1,22 +1,13 @@
-div.editablefields .editablefields_greyed {
-  background:grey;
-  opacity:0.5;
-}
-div.editablefields .editablefields_throbber {
-  background-image: url(./throbber.gif);
-  background-position: center center;
-  background-repeat: no-repeat;
-  position:absolute;
-  min-height: 32px;
-  opacity:0.3;
+.editablefields_throbber {
+  background: url(./throbber.gif)  no-repeat right center;
+  padding-right:18px;
 }
 div.editablefields_clicktoedit_message { 
   position: absolute;
   cursor:pointer;
-  font-size:0.7em;
+  font-size:xx-small;
   opacity:0.5;
-  background:grey;
-  border:2px outset;
-  padding-left:2px;
-  padding-right:2px;
+  display:block;  
+  margin-top: -1em;
+  z-index: 200;
 }
