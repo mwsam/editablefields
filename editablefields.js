@@ -25,32 +25,37 @@ Drupal.editablefields.init = function() {
 }
   
 Drupal.editablefields.load = function(element) {
-  $(element).addClass('editablefields_throbber');
 
-  var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field")+ "/" + $(element).attr("delta");
-  $.ajax({
-    url: url,
-    type: 'GET',
-    success: function(response) {
+  if ($(element).hasClass("editablefields_REMOVE") ) {
+    $(element).hide();
+  } else {
+    $(element).addClass('editablefields_throbber');
+    
+    var url = Drupal.settings.editablefields.url_html + "/" + $(element).attr("nid") + "/" + $(element).attr("field")+ "/" + $(element).attr("delta");
+    $.ajax({
+      url: url,
+      type: 'GET',
+      success: function(response) {
       // Call all callbacks.
-      if (response.__callbacks) {
-        $.each(response.__callbacks, function(i, callback) {
-          eval(callback)(element, response);
+        if (response.__callbacks) {
+          $.each(response.__callbacks, function(i, callback) {
+            eval(callback)(element, response);
+          });
+        }
+        $(element).html(response.content);
+        Drupal.attachBehaviors(element);
+        $(element).find(':input').change(function() {
+          Drupal.editablefields.onchange(this);
         });
-      }
-      $(element).html(response.content);
-      Drupal.attachBehaviors(element);
-      $(element).find(':input').change(function() {
-        Drupal.editablefields.onchange(this);
-      });
-      $(element).removeClass('editablefields_throbber');
-    },
-    error: function(response) {
-      alert(Drupal.t("An error occurred at ") + url);
-      $(element).removeClass('editablefields_throbber');
-    },
-    dataType: 'json'
-  });
+        $(element).removeClass('editablefields_throbber');
+      },
+      error: function(response) {
+        alert(Drupal.t("An error occurred at ") + url);
+        $(element).removeClass('editablefields_throbber');
+      },
+      dataType: 'json'
+    });
+  }
 };
 
 Drupal.editablefields.onchange = function(element) {

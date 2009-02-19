@@ -81,7 +81,7 @@ function theme_editablefields_formatter_editable($element) {
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
-  if (!content_access('edit', $field)) {
+  if (!node_access('update',$node) || !content_access('edit', $field)) {
     // can't edit
     $formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
@@ -112,17 +112,16 @@ function theme_editablefields_formatter_editable($element) {
       }
       // CORE handling shoudl have a div on each,
       // MODULE handling should have a div surounding all elements (treat it as
-      // one field)
-      $pre='<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">';
-      $post='</div>';
+      // one field) (So, we'll arrainge for the JS to remove the rest!)
       if (content_handle('widget', 'multiple values', $field) != CONTENT_HANDLE_CORE) {
         if ($delta!=0) {
-          $pre=''; 
-        }
-        if ($delta!=count($node->{$field_name})-1) {
-          $post='';
+          $class="editablefields editablefields_REMOVE";
         }
       }
+
+      $pre='<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">';
+      $post='</div>';
+      
       return $pre . theme($theme, $element) . $post;
     }
   }
