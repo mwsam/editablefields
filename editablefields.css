@@ -7,7 +7,7 @@ div.editablefields_clicktoedit_message {
   cursor:pointer;
   font-size:xx-small;
   opacity:0.5;
-  display:block;  
+  display:block;
   margin-top: -1em;
   z-index: 200;
 }

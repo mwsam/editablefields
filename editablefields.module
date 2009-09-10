@@ -14,6 +14,12 @@ function editablefields_menu() {
   $items = array();
 
   // Admin pages:
+  $items['editablefields_view'] = array(
+    'page callback' => 'editablefields_view',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'title' => 'ajax view',
+    );
   $items['editablefields_html'] = array(
     'page callback' => 'editablefields_html',
     'access arguments' => array('access content'),
@@ -74,10 +80,11 @@ function theme_editablefields_formatter_editable($element) {
   $delta = $element['#item']['#delta'];
 
 
+
   if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
   }
-    
-  
+
+
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
@@ -90,7 +97,7 @@ function theme_editablefields_formatter_editable($element) {
     }
   }
   else {
-    $formatter_name = 'default';
+  	$formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
       if (!isset($js_ready)) {
         $js_ready = TRUE;
@@ -101,7 +108,8 @@ function theme_editablefields_formatter_editable($element) {
         $settings = array(
           'url_html' => url('editablefields_html', array('absolute' => TRUE)),
           'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),
-          'clicktoedit_message' => '<div class="editablefields_clicktoedit_message">'. t('[edit]') .'</div>',
+          'url_view' => url('editablefields_view', array('absolute' => TRUE)),
+          //'clicktoedit_message' => '<div class="editablefields_clicktoedit_message">'. t('[edit]') .'</div>',
         );
         drupal_add_js(array('editablefields' => $settings), 'setting');
       }
@@ -121,7 +129,7 @@ function theme_editablefields_formatter_editable($element) {
 
       $pre='<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">';
       $post='</div>';
-      
+
       return $pre . theme($theme, $element) . $post;
     }
   }
@@ -158,6 +166,29 @@ function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
 
   $form['#field_info'] = array($field['field_name'] => $field);
   return $form;
+}
+
+/**
+ * Menu callback: ajax view.
+ */
+function editablefields_view() {
+	
+  $nid = arg(1);
+  $field_name = arg(2);
+  $delta=arg(3);
+  $node = node_load($nid);
+  drupal_set_header('Content-Type: text; charset=utf-8');
+
+  $html = node_view($node, FALSE, FALSE, FALSE);
+  $html = strstr($html, $field_name .'" delta="'. $delta .'"');
+  $html = strstr($html, ">");
+  $html = substr($html, 1);
+  $end = strpos($html, "</div>");
+  $html = substr($html, 0, $end);
+  $object = new stdClass();
+  $object->content = $html;
+  drupal_json($object);
+  exit();
 }
 
 /**
