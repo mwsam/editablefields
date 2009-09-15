@@ -9,18 +9,11 @@ Drupal.behaviors.editablefields = function(context) {
     $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
     $(this).click(Drupal.editablefields.init);
   });
-  $('div.field-label:not(.label-processed)', context).addClass('label-processed').each(function() {
+  $('div.field-label, div.field-label-inline-first, div.field-label-inline, div.field-label-inline-last', context).not('.label-processed').each(function() {
     $(this).click(function() {
+      $(this).addClass('highlighted');
       $(this).parent().find('.editablefields').each(function() {
         Drupal.editablefields.load(this);
-      });
-      return false;
-    });
-  });
-  $('div.field-label:has(.label-processed)', context).removeClass('label-processed').each(function() {
-    $(this).mousedown(function() {
-      $(this).parent().find('.editablefields').each(function() {
-        Drupal.editablefields.view(this);
       });
       return false;
     });
@@ -35,6 +28,7 @@ Drupal.editablefields = {};
 
 Drupal.editablefields.init = function() {
   $(this).unbind("click",Drupal.editablefields.init);
+  $(this).parents('div.field').find('.field-label, .field-label-inline-first, .field-label-inline, .field-label-inline-last').addClass('highlighted');
   $(this).addClass('editablefields-processed');
   $(this).children().hide();
   Drupal.editablefields.load(this);
@@ -62,7 +56,7 @@ Drupal.editablefields.view = function(element) {
         //alert(response.content);
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
-        //$(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
+        $(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
         $(element).bind("click",Drupal.editablefields.init);
         $(element).removeClass('editablefields_throbber');
         $(element).removeClass('editablefields-processed');
@@ -195,6 +189,7 @@ Drupal.editablefields.onblur = function(element) {
   }
 
   if ($(element).hasClass('clicktoedit')) {
+    $(element).parents('div.field').find('.highlighted').removeClass('highlighted');
     Drupal.editablefields.view(element);
   }
 
