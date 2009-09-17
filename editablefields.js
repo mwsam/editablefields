@@ -199,7 +199,10 @@ Drupal.editablefields.onchange = function(element) {
       element: $(element),
       success: function(msg) {
         $(element).removeClass('editablefields_throbber');
-        Drupal.editablefields.load(element);
+        // Re-enable the widget
+        $(element).find(':input').each(function() {
+          $(this).attr("disabled", false);
+        });
       },
       error: function(msg) {
         alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
