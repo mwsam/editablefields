@@ -1,6 +1,10 @@
 // $Id$
 
 Drupal.behaviors.editablefields = function(context) {
+  $('div.editablefields-html-load', context).not('.clicktoedit').not('.editablefields-processed').each(function() {
+    $(this).addClass('editablefields-processed');
+    Drupal.editablefields.html_init(this);
+  });
   $('div.editablefields', context).not('.clicktoedit').not('.editablefields-processed').each(function() {
     $(this).addClass('editablefields-processed');
     Drupal.editablefields.load(this);
@@ -126,6 +130,37 @@ Drupal.editablefields.load = function(element) {
       },
       dataType: 'json'
     });
+  }
+};
+
+Drupal.editablefields.html_init = function(element) {
+
+  if ($(element).hasClass("editablefields_REMOVE") ) {
+    $(element).hide();
+  }
+  else {
+        $(element).find(':input').change(function() {
+          Drupal.editablefields.onchange(this);
+        });
+        $(element).find(':input').blur(function() {
+          Drupal.editablefields.onblur(this);
+        });
+        if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
+          $(element).find(':input').not(':hidden').get(0).focus();
+        }
+        if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
+          $(element).find(':checked').not(':hidden').get(0).focus();
+        }
+        if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
+          $(element).find(':checked').not(':hidden').get(0).focus();
+        }
+        if ($(element).find('select').not(':hidden').hasClass('form-select')) {
+          $(element).find(':selected').not(':hidden').select();
+          $(element).find('select').not(':hidden').focus();
+        }
+        if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
+          $(element).find('.form-submit').not(':hidden').focus();
+        }
   }
 };
 

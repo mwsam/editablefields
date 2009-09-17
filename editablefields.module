@@ -45,6 +45,10 @@ function editablefields_theme() {
       'arguments' => array('element' => NULL),
       'function' => 'theme_editablefields_formatter_editable',
       ),
+    'editablefields_formatter_editable_html' => array(
+      'arguments' => array('element' => NULL),
+      'function' => 'theme_editablefields_formatter_editable',
+      ),
     'editablefields_formatter_clicktoedit' => array(
       'arguments' => array('element' => NULL),
       'function' => 'theme_editablefields_formatter_editable',
@@ -58,7 +62,11 @@ function editablefields_theme() {
 function editablefields_field_formatter_info() {
   return array(
     'editable' => array(
-      'label' => t('Editable'),
+      'label' => t('Editable (Ajax)'),
+      'field types' => array_keys(_content_field_types()),
+      ),
+    'editable_html' => array(
+      'label' => t('Editable (HTML)'),
       'field types' => array_keys(_content_field_types()),
       ),
     'clicktoedit' => array(
@@ -76,15 +84,11 @@ function theme_editablefields_formatter_editable($element) {
 
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
-  $node = $element['#node'];
+  $node = node_load($element['#node']->nid);
   $delta = $element['#item']['#delta'];
-
-
 
   if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
   }
-
-
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
@@ -97,7 +101,7 @@ function theme_editablefields_formatter_editable($element) {
     }
   }
   else {
-  	$formatter_name = 'default';
+    $formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
       if (!isset($js_ready)) {
         $js_ready = TRUE;
@@ -118,6 +122,9 @@ function theme_editablefields_formatter_editable($element) {
       if ($element['#formatter'] == 'clicktoedit') {
         $class .=" clicktoedit";
       }
+      else if ($element['#formatter'] == 'editable_html') {
+        $class .=" editablefields-html-load";
+      }
       // CORE handling shoudl have a div on each,
       // MODULE handling should have a div surounding all elements (treat it as
       // one field) (So, we'll arrainge for the JS to remove the rest!)
@@ -130,7 +137,12 @@ function theme_editablefields_formatter_editable($element) {
       $pre='<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">';
       $post='</div>';
 
-      return $pre . theme($theme, $element) . $post;
+      if ($element['#formatter'] != 'editable_html') {
+        return $pre . theme($theme, $element) . $post;
+      }
+      else {
+        return $pre . drupal_get_form('editablefields_form', $node, $field_name, $delta) . $post;
+      }
     }
   }
 }
@@ -172,7 +184,7 @@ function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
  * Menu callback: ajax view.
  */
 function editablefields_view() {
-	
+  
   $nid = arg(1);
   $field_name = arg(2);
   $delta=arg(3);
