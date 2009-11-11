@@ -54,24 +54,24 @@ Drupal.editablefields.html_init = function(element) {
     $(element).find(':input').blur(function() {
       Drupal.editablefields.onblur(this);
     });
-//    if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
-//      $(element).find(':input').not(':hidden').get(0).focus();
-//    }
-//    if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
-//      $(element).find(':checked').not(':hidden').get(0).focus();
-//	  }
-//    if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
-//      $(element).find(':checked').not(':hidden').get(0).focus();
-//    }
-//    if ($(element).find('select').not(':hidden').hasClass('form-select')) {
-//      $(element).find(':selected').not(':hidden').select();
-//      $(element).find('select').not(':hidden').focus();
-//    }
-//    if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
-//      $(element).find('.form-submit').not(':hidden').focus();
-//    }
+    //if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
+      //$(element).find(':input').not(':hidden').get(0).focus();
+    //}
+    //if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
+      //$(element).find(':checked').not(':hidden').get(0).focus();
+    //}
+    //if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
+      //$(element).find(':checked').not(':hidden').get(0).focus();
+    //}
+    //if ($(element).find('select').not(':hidden').hasClass('form-select')) {
+      //$(element).find(':selected').not(':hidden').select();
+      //$(element).find('select').not(':hidden').focus();
+    //}
+    //if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
+      //$(element).find('.form-submit').not(':hidden').focus();
+    //}
   }
-};
+}
 
 Drupal.editablefields.view = function(element) {
 
@@ -102,8 +102,8 @@ Drupal.editablefields.view = function(element) {
       },
       error: function(response) {
         //alert(Drupal.t("An error occurred at ") + url);
-       	$(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
-       	$(".messages.error").hide(0).show(1000);
+      	$(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
+    	$(".messages.error").hide(0).show(1000);
         $(element).removeClass('editablefields_throbber');
         $(element).removeClass('editablefields-processed');
       },
@@ -113,7 +113,7 @@ Drupal.editablefields.view = function(element) {
 };
 
 Drupal.editablefields.load = function(element) {
-
+  $(".content .messages.status").remove();
   if ($(element).hasClass("editablefields_REMOVE") ) {
     $(element).hide();
   }
@@ -139,32 +139,32 @@ Drupal.editablefields.load = function(element) {
         $(element).find(':input').blur(function() {
           Drupal.editablefields.onblur(this);
         });
-//        if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
-//          $(element).find(':input').not(':hidden').get(0).focus();
-//        }
-//        if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
-//          $(element).find(':checked').not(':hidden').get(0).focus();
-//        }
-//        if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
-//          $(element).find(':checked').not(':hidden').get(0).focus();
-//        }
-//        if ($(element).find('select').not(':hidden').hasClass('form-select')) {
-//          $(element).find(':selected').not(':hidden').select();
-//          $(element).find('select').not(':hidden').focus();
-//        }
-//        if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
-//          //$(element).find(':selected').not(':hidden').select();
-//          $(element).find('.form-submit').not(':hidden').focus();
-//        }
-//        if ($(element).find(':input').not(':hidden').hasClass('form-textarea')) {
-//          $(element).find('.form-textarea').not(':hidden').focus();
-//        }
+        //if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
+          //$(element).find(':input').not(':hidden').get(0).focus();
+        //}
+        //if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
+          //$(element).find(':checked').not(':hidden').get(0).focus();
+        //}
+        //if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
+          //$(element).find(':checked').not(':hidden').get(0).focus();
+        //}
+        //if ($(element).find('select').not(':hidden').hasClass('form-select')) {
+          //$(element).find(':selected').not(':hidden').select();
+          //$(element).find('select').not(':hidden').focus();
+        //}
+        //if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
+          //$(element).find(':selected').not(':hidden').select();
+          //$(element).find('.form-submit').not(':hidden').focus();
+        //}
+        //if ($(element).find(':input').not(':hidden').hasClass('form-textarea')) {
+          //$(element).find('.form-textarea').not(':hidden').focus();
+        //}
         $(element).removeClass('editablefields_throbber');
       },
       error: function(response) {
         //alert(Drupal.t("An error occurred at ") + url);
        	$(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
-       	$(".messages.error").hide(0).show(1000);
+    	$(".messages.error").hide(0).show(1000);
         $(element).removeClass('editablefields_throbber');
       },
       dataType: 'json'
@@ -193,8 +193,8 @@ Drupal.editablefields.onchange = function(element) {
       },
       error: function(msg) {
         //alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
-       	$(element).after('<div class="messages error">' + msg.responseText + '</div>');
-       	$(".messages.error").hide(0).show(1000);
+      	$(element).after('<div class="messages error">' + msg.responseText + '</div>');
+    	$(".messages.error").hide(0).show(1000);
         $(element).removeClass('editablefields_throbber');
         Drupal.editablefields.load(element);
       }
@@ -218,7 +218,7 @@ Drupal.editablefields.onchange = function(element) {
       error: function(msg) {
         //alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
         $(element).after('<div class="messages error">' + msg.responseText + '</div>');
-     	$(".messages.error").hide(0).show(1000);
+    	$(".messages.error").hide(0).show(1000);
         $(element).removeClass('editablefields_throbber');
         Drupal.editablefields.load(element);
       }

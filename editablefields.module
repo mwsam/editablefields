@@ -84,7 +84,7 @@ function theme_editablefields_formatter_editable($element) {
 
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
-  $node = node_load($element['#node']->nid);
+  $node = $element['#node'];
   $delta = $element['#item']['#delta'];
 
   if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
@@ -113,7 +113,7 @@ function theme_editablefields_formatter_editable($element) {
           'url_html' => url('editablefields_html', array('absolute' => TRUE)),
           'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),
           'url_view' => url('editablefields_view', array('absolute' => TRUE)),
-          'clicktoedit_message' => '<div class="editablefields_clicktoedit_message">'. t('[edit]') .'</div>',
+          //'clicktoedit_message' => '<div class="editablefields_clicktoedit_message">'. t('[edit]') .'</div>',
         );
         drupal_add_js(array('editablefields' => $settings), 'setting');
       }
@@ -143,7 +143,7 @@ function theme_editablefields_formatter_editable($element) {
       else {
         // $node seems to be incomplete, so we reload it
         $node = node_load($node->nid);
-      	return $pre . drupal_get_form('editablefields_form', $node, $field_name, $delta) . $post;
+        return $pre . drupal_get_form('editablefields_form', $node, $field_name, $delta) . $post;
       }
     }
   }
@@ -186,7 +186,7 @@ function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
  * Menu callback: ajax view.
  */
 function editablefields_view() {
-  
+
   $nid = arg(1);
   $field_name = arg(2);
   $delta=arg(3);
@@ -194,6 +194,15 @@ function editablefields_view() {
   drupal_set_header('Content-Type: text; charset=utf-8');
 
   $html = node_view($node, FALSE, FALSE, FALSE);
+  $messages = drupal_get_messages('status', TRUE);
+  if (count($messages)>0) {
+  	foreach ($messages as $type=>$messages) {
+      foreach ($messages as $message) {
+      	$output .= '<div class="messages '. $type .'">'. $message ."</div>";
+      }
+  	}
+  }
+  
   // Should use DOM for this.
   $pos = strstr($html, 'field="'. $field_name .'" delta="'. $delta .'"');
   if ($pos == FALSE) {
@@ -204,7 +213,7 @@ function editablefields_view() {
   $end = strpos($html, "</div>");
   $html = substr($html, 0, $end);
   $object = new stdClass();
-  $object->content = $html;
+  $object->content = $output . $html;
   drupal_json($object);
   exit();
 }
@@ -246,7 +255,7 @@ function editablefields_submit() {
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
-      
+
     if (!isset($_POST[$field_name])) {
       $_POST[$field_name] = array();
     }
