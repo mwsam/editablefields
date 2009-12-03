@@ -57,7 +57,8 @@ function editablefields_theme() {
 }
 
 /**
- * Implementation of hook_field_formatter_info().
+ * Implementation of ho  $field['widget']['#resizable'] = FALSE;
+ ok_field_formatter_info().
  */
 function editablefields_field_formatter_info() {
   return array(
@@ -179,9 +180,23 @@ function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
   }
 
   $form['#field_info'] = array($field['field_name'] => $field);
+  $form['#pre_render'] = array('_editablefields_pre_render');
+
   return $form;
 }
 
+/**
+ * Resizable Textarea has an issue with setting focus.
+ * To circumvent this we have to set the forms fields #resizable field to FALSE.
+ * We have to use pre_render because the here the field's #type is still textarea.
+ * TODO Keep editable_HTML and editable_JAVA fields resizable, they don't have the focus issue.
+ */
+function _editablefields_pre_render(&$form){
+  if ($form['field_name'][0]['value']['#type'] == 'textarea') {
+    $form['field_name'][0]['value']['#resizable'] = FALSE;
+  }
+  return $form;
+}
 /**
  * Menu callback: ajax view.
  */
@@ -303,3 +318,4 @@ function editablefields_submit() {
   }
   exit();
 }
+

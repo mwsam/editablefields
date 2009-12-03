@@ -28,7 +28,7 @@ Drupal.behaviors.editablefields = function(context) {
   });
   $('input', context).not(':hidden').focus();
   $('select', context).not(':hidden').focus();
-//  $('textarea', context).not(':hidden').focus();
+  $('textarea', context).not(':hidden').focus();
 }
 
 
