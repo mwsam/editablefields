@@ -189,6 +189,7 @@ Drupal.editablefields.onchange = function(element) {
       element: $(element),
       success: function(msg) {
         $(element).removeClass('editablefields_throbber');
+        $(".messages.error").hide(1000);
         Drupal.editablefields.view(element);
       },
       error: function(msg) {
