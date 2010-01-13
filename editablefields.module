@@ -57,8 +57,7 @@ function editablefields_theme() {
 }
 
 /**
- * Implementation of ho  $field['widget']['#resizable'] = FALSE;
- ok_field_formatter_info().
+ * Implementation of hook_field_formatter_info().
  */
 function editablefields_field_formatter_info() {
   return array(
@@ -93,11 +92,11 @@ function theme_editablefields_formatter_editable($element) {
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
-  if (!node_access('update',$node) || !content_access('edit', $field)) {
+  if (!node_access('update', $node) || !content_access('edit', $field)) {
     // can't edit
     $formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
-      $theme = $formatter['module'] .'_formatter_'. $formatter_name;
+      $theme = $formatter['module'] . '_formatter_' . $formatter_name;
       return theme($theme, $element);
     }
   }
@@ -107,8 +106,8 @@ function theme_editablefields_formatter_editable($element) {
       if (!isset($js_ready)) {
         $js_ready = TRUE;
         drupal_add_js('misc/jquery.form.js');
-        drupal_add_js(drupal_get_path('module', 'editablefields') .'/editablefields.js');
-        drupal_add_css(drupal_get_path('module', 'editablefields') .'/editablefields.css');
+        drupal_add_js(drupal_get_path('module', 'editablefields') . '/editablefields.js');
+        drupal_add_css(drupal_get_path('module', 'editablefields') . '/editablefields.css');
 
         $settings = array(
           'url_html' => url('editablefields_html', array('absolute' => TRUE)),
@@ -118,25 +117,25 @@ function theme_editablefields_formatter_editable($element) {
         );
         drupal_add_js(array('editablefields' => $settings), 'setting');
       }
-      $theme = $formatter['module'] .'_formatter_'. $formatter_name;
-      $class="editablefields";
+      $theme = $formatter['module'] . '_formatter_' . $formatter_name;
+      $class = "editablefields";
       if ($element['#formatter'] == 'clicktoedit') {
-        $class .=" clicktoedit";
+        $class .= " clicktoedit";
       }
-      else if ($element['#formatter'] == 'editable_html') {
-        $class .=" editablefields-html-load";
+      elseif ($element['#formatter'] == 'editable_html') {
+        $class .= " editablefields-html-load";
       }
       // CORE handling shoudl have a div on each,
       // MODULE handling should have a div surounding all elements (treat it as
       // one field) (So, we'll arrainge for the JS to remove the rest!)
       if (content_handle('widget', 'multiple values', $field) != CONTENT_HANDLE_CORE) {
-        if ($delta!=0) {
-          $class="editablefields editablefields_REMOVE";
+        if ($delta != 0) {
+          $class = "editablefields editablefields_REMOVE";
         }
       }
 
-      $pre='<div class="'. $class .'" nid="'. $node->nid .'" field="'. $field_name .'" delta="'. $delta .'">';
-      $post='</div>';
+      $pre = '<div class="' . $class . '" nid="' . $node->nid . '" field="' . $field_name . '" delta="' . $delta . '">';
+      $post = '</div>';
 
       if ($element['#formatter'] != 'editable_html') {
         return $pre . theme($theme, $element) . $post;
@@ -191,7 +190,7 @@ function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
  * We have to use pre_render because the here the field's #type is still textarea.
  * TODO Keep editable_HTML and editable_JAVA fields resizable, they don't have the focus issue.
  */
-function _editablefields_pre_render(&$form){
+function _editablefields_pre_render(&$form) {
   if ($form['field_name'][0]['value']['#type'] == 'textarea') {
     $form['field_name'][0]['value']['#resizable'] = FALSE;
   }
@@ -204,24 +203,24 @@ function editablefields_view() {
 
   $nid = arg(1);
   $field_name = arg(2);
-  $delta=arg(3);
+  $delta = arg(3);
   $node = node_load($nid);
   drupal_set_header('Content-Type: text; charset=utf-8');
 
   $html = node_view($node, FALSE, FALSE, FALSE);
   $messages = drupal_get_messages('status', TRUE);
-  if (count($messages)>0) {
-  	foreach ($messages as $type=>$messages) {
+  if (count($messages) > 0) {
+    foreach ($messages as $type => $messages) {
       foreach ($messages as $message) {
-      	$output .= '<div class="messages '. $type .'">'. $message ."</div>";
+        $output .= '<div class="messages ' . $type . '">' . $message . "</div>";
       }
-  	}
+    }
   }
-  
+
   // Should use DOM for this.
-  $pos = strstr($html, 'field="'. $field_name .'" delta="'. $delta .'"');
+  $pos = strstr($html, 'field="' . $field_name . '" delta="' . $delta . '"');
   if ($pos == FALSE) {
-  	$pos = strstr($html, 'delta="'. $delta .'" field="'. $field_name .'"');
+    $pos = strstr($html, 'delta="' . $delta . '" field="' . $field_name . '"');
   }
   $html = strstr($pos, ">");
   $html = substr($html, 1);
@@ -239,7 +238,7 @@ function editablefields_view() {
 function editablefields_html() {
   $nid = arg(1);
   $field_name = arg(2);
-  $delta=arg(3);
+  $delta = arg(3);
   $node = node_load($nid);
 
   if (node_access('update', $node)) {
@@ -265,7 +264,7 @@ function editablefields_html() {
 function editablefields_submit() {
   $nid = $_POST['nid'];
   $field_name = $_POST['field'];
-  $delta=$_POST['delta'];
+  $delta = $_POST['delta'];
 
   $node = node_load($nid);
 
@@ -277,16 +276,30 @@ function editablefields_submit() {
 
     $form_state = array('values' => $_POST);
 
+    /* it seems that the serializer does not serialize e.g. un-checked
+     * checkboxes. Leaving them as empty arrays. This FILTHY hack fills in the
+     * array with 'something' so that when the form is executed, it fills in the
+     * right value - I dislike this code - JMB */
     if (is_array($node->{$field_name})) {
+      if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
+        if (empty($form_state['values'][$field_name])) {
+          $form_state['values'][$field_name]=array('value'=>0);
+        }
+      } else {
+        if (empty($form_state['values'][$field_name][0])) {
+          $form_state['values'][$field_name][0]=array('value'=>0);
+        }
+      }
+
       drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
 
-      $err=drupal_get_messages();
-      if (count($err)>0) {
+      $err = drupal_get_messages();
+      if (count($err) > 0) {
         drupal_set_header('HTTP/1.1 404 Not Found');
         // format the error message suitable for a popup window in simple text.
-        foreach ($err as $type=>$messages) {
+        foreach ($err as $type => $messages) {
           foreach ($messages as $message) {
-            print $type .' : '. $message ."\n";
+            print $type . ' : ' . $message . "\n";
           }
         }
         exit();
@@ -294,13 +307,14 @@ function editablefields_submit() {
 
       $field = content_fields($field_name);
       if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
-        if ($node->{$field_name}[$delta]!=$form_state['values'][$field_name][0]) {
-          $node->{$field_name}[$delta]=$form_state['values'][$field_name][0];
+        if ($node->{$field_name}[$delta] != $form_state['values'][$field_name][0]) {
+          $node->{$field_name}[$delta] = $form_state['values'][$field_name][0];
           node_save($node);
         }
-      } else {
-        if ($node->{$field_name}!=$form_state['values'][$field_name]) {
-          $node->{$field_name}=$form_state['values'][$field_name];
+      }
+      else {
+        if ($node->{$field_name} != $form_state['values'][$field_name]) {
+          $node->{$field_name} = $form_state['values'][$field_name];
           node_save($node);
         }
       }
@@ -318,4 +332,3 @@ function editablefields_submit() {
   }
   exit();
 }
-

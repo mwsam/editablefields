@@ -23,7 +23,7 @@ Drupal.behaviors.editablefields = function(context) {
       return false;
     });
   });
-  $('div.editablefields', context).not('.editablefields-processed').submit(function(){
+  $('div.editablefields', context).submit(function(){
     return false;
   });
   $('input', context).not(':hidden').focus();
