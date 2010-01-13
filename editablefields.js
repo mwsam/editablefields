@@ -101,11 +101,12 @@ Drupal.editablefields.view = function(element) {
         $(element).removeClass('editablefields-processed');
       },
       error: function(response) {
-        //alert(Drupal.t("An error occurred at ") + url);
-      	$(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
-    	$(".messages.error").hide(0).show(1000);
-        $(element).removeClass('editablefields_throbber');
-        $(element).removeClass('editablefields-processed');
+          //alert(Drupal.t("An error occurred at ") + url);
+          $(".messages.error").remove();
+          $(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
+          $(".messages.error").hide(0).show(1000);
+          $(element).removeClass('editablefields_throbber');
+          $(element).removeClass('editablefields-processed');
       },
       dataType: 'json'
     });
@@ -163,9 +164,10 @@ Drupal.editablefields.load = function(element) {
       },
       error: function(response) {
         //alert(Drupal.t("An error occurred at ") + url);
-       	$(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
-    	$(".messages.error").hide(0).show(1000);
-        $(element).removeClass('editablefields_throbber');
+          $(".messages.error").remove();
+          $(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
+          $(".messages.error").hide(0).show(1000);
+          $(element).removeClass('editablefields_throbber');
       },
       dataType: 'json'
     });
@@ -189,15 +191,17 @@ Drupal.editablefields.onchange = function(element) {
       element: $(element),
       success: function(msg) {
         $(element).removeClass('editablefields_throbber');
-        $(".messages.error").hide(1000);
+        $(".messages.error").hide(1000, function() {$(this).remove();});
         Drupal.editablefields.view(element);
       },
       error: function(msg) {
-        //alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
-      	$(element).after('<div class="messages error">' + msg.responseText + '</div>');
-    	$(".messages.error").hide(0).show(1000);
-        $(element).removeClass('editablefields_throbber');
-        Drupal.editablefields.load(element);
+        //alert(Drupal.t("Error, unable to make update:") +"\n"+
+        //msg.responseText);
+          $(".messages.error").remove();
+          $(element).after('<div class="messages error">' + msg.responseText + '</div>');
+          $(".messages.error").hide(0).show(1000);
+          $(element).removeClass('editablefields_throbber');
+          Drupal.editablefields.load(element);
       }
     });
   }
@@ -212,16 +216,19 @@ Drupal.editablefields.onchange = function(element) {
         $(element).removeClass('editablefields_throbber');
 //        Drupal.editablefields.load(element);
         // Re-enable the widget
+        $(".messages.error").hide(1000, function() {$(this).remove();});
         $(element).find(':input').each(function() {
           $(this).attr("disabled", false);
         });
       },
       error: function(msg) {
-        //alert(Drupal.t("Error, unable to make update:") +"\n"+ msg.responseText);
-        $(element).after('<div class="messages error">' + msg.responseText + '</div>');
-    	$(".messages.error").hide(0).show(1000);
-        $(element).removeClass('editablefields_throbber');
-        Drupal.editablefields.load(element);
+        //alert(Drupal.t("Error, unable to make update:") +"\n"+
+        //msg.responseText);
+          $(".messages.error").remove();
+          $(element).after('<div class="messages error">' + msg.responseText + '</div>');
+          $(".messages.error").hide(0).show(1000);
+          $(element).removeClass('editablefields_throbber');
+          Drupal.editablefields.load(element);
       }
     });
   }
@@ -241,9 +248,7 @@ Drupal.editablefields.onblur = function(element) {
   }
 
   if ($(element).hasClass('clicktoedit')) {
-	$(".messages.error").hide(1000, function() {
-      $(this).remove();
-	});
+    $(".messages.error").hide(1000, function() {$(this).remove();});
     $(element).parents('div.field').find('.highlighted').removeClass('highlighted');
     Drupal.editablefields.view(element);
   }

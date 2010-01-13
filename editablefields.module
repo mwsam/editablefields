@@ -292,8 +292,9 @@ function editablefields_submit() {
       }
 
       drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
-
+      
       $err = drupal_get_messages();
+      
       if (count($err) > 0) {
         drupal_set_header('HTTP/1.1 404 Not Found');
         // format the error message suitable for a popup window in simple text.
