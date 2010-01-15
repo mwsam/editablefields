@@ -206,8 +206,22 @@ function editablefields_view() {
   $delta = arg(3);
   $node = node_load($nid);
   drupal_set_header('Content-Type: text; charset=utf-8');
+//  $html = node_view($node, FALSE, FALSE, FALSE);
+  // this required traversing the entire node to get the field (and doesn't work
+  // for checkboxes anyway)
 
-  $html = node_view($node, FALSE, FALSE, FALSE);
+  $field = content_fields($field_name, $node->type);
+
+  $field['display_settings']['label']['format']='hidden';
+  // We have 2 reasonable choices here. We COULD use 'clicktoedit' and end up
+  // with the same HTML - then we could strip that HTML down to remove the
+  // surrounding 'click to edit' div (which we dont want, as we'll be replacing
+  // the html inside one of those div's)
+  // or we can simply use the 'defualt' formatter - which wont have the click to
+  // edit inside it  - and is hard coded into this module (for now) anyway!
+  $field['display_settings']['full']['format']='default';
+  $html=content_view_field($field,$node);
+  
   $messages = drupal_get_messages('status', TRUE);
   if (count($messages) > 0) {
     foreach ($messages as $type => $messages) {
@@ -217,17 +231,8 @@ function editablefields_view() {
     }
   }
 
-  // Should use DOM for this.
-  $pos = strstr($html, 'field="' . $field_name . '" delta="' . $delta . '"');
-  if ($pos == FALSE) {
-    $pos = strstr($html, 'delta="' . $delta . '" field="' . $field_name . '"');
-  }
-  $html = strstr($pos, ">");
-  $html = substr($html, 1);
-  $end = strpos($html, "</div>");
-  $html = substr($html, 0, $end);
   $object = new stdClass();
-  $object->content = $output . $html;
+  $object->content = $output . $html.drupal_render($node->content[$field_name]);
   drupal_json($object);
   exit();
 }
