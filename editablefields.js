@@ -138,7 +138,8 @@ Drupal.editablefields.load = function(element) {
           Drupal.editablefields.onchange(this);
         });
         $(element).find(':input').blur(function() {
-          Drupal.editablefields.onblur(this);
+                                         window.setTimeout(function(){Drupal.editablefields.onblur(this)},10);
+//  Drupal.editablefields.onblur(this);
         });
         //if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
           //$(element).find(':input').not(':hidden').get(0).focus();
