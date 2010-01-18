@@ -10,7 +10,10 @@ Drupal.behaviors.editablefields = function(context) {
     Drupal.editablefields.load(this);
   });
   $('div.editablefields', context).filter('.clicktoedit').not('.editablefields-processed').each(function() {
-    //$(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
+    $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
+    $(".editablefields_clicktoedit_message").fadeOut(3000);
+    $(this).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
+    $(this).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
     $(this).click(Drupal.editablefields.init);
   });
   $('div.field-label, div.field-label-inline-first, div.field-label-inline, div.field-label-inline-last', context).not('.label-processed').each(function() {
@@ -33,6 +36,9 @@ Drupal.behaviors.editablefields = function(context) {
 
 
 Drupal.editablefields = {};
+// Create a unique index for checkboxes
+Drupal.editablefields.checkbox_fix_index = 0;
+
 
 Drupal.editablefields.init = function() {
   $(this).unbind("click",Drupal.editablefields.init);
@@ -48,9 +54,22 @@ Drupal.editablefields.html_init = function(element) {
     $(element).hide();
   }
   else {
-    $(element).find(':input').change(function() {
-      Drupal.editablefields.onchange(this);
-    });
+
+    var uniqNum = Drupal.editablefields.checkbox_fix_index++;
+    $(element).find(':input').each(function() {
+                                     // Create a unique id field for checkboxes 
+                                     if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
+                                       $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
+                                     }
+                                     $(this).change(function() {
+                                                      Drupal.editablefields.onchange(this);
+                                                    });
+                                   });
+    
+//    $(element).find(':input').change(function() {
+//      Drupal.editablefields.onchange(this);
+//    });
+
     $(element).find(':input').blur(function() {
       Drupal.editablefields.onblur(this);
     });
@@ -95,7 +114,10 @@ Drupal.editablefields.view = function(element) {
         //alert(response.content);
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
-        //$(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
+        $(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
+        $(".editablefields_clicktoedit_message").fadeOut(3000);
+        $(this).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
+        $(this).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
         $(element).bind("click",Drupal.editablefields.init);
         $(element).removeClass('editablefields_throbber');
         $(element).removeClass('editablefields-processed');
@@ -134,9 +156,23 @@ Drupal.editablefields.load = function(element) {
         }
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
-        $(element).find(':input').change(function() {
-          Drupal.editablefields.onchange(this);
-        });
+
+        var uniqNum = Drupal.editablefields.checkbox_fix_index++;
+        $(element).find(':input').each(function() {
+                                         // Create a unique id field for checkboxes 
+                                         if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
+                                           $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
+                                         }
+                                         $(this).change(function() {
+                                                          Drupal.editablefields.onchange(this);
+                                                        });
+                                       });
+        
+
+//        $(element).find(':input').change(function() {
+//          Drupal.editablefields.onchange(this);
+//        });
+
         $(element).find(':input').blur(function() {
                                          window.setTimeout(function(){Drupal.editablefields.onblur(this)},10);
 //  Drupal.editablefields.onblur(this);
