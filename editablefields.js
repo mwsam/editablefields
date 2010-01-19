@@ -60,6 +60,7 @@ Drupal.editablefields.html_init = function(element) {
                                      // Create a unique id field for checkboxes 
                                      if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
                                        $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
+                                       $(this).click(function(){$(this).blur();});
                                      }
                                      $(this).change(function() {
                                                       Drupal.editablefields.onchange(this);
@@ -162,6 +163,7 @@ Drupal.editablefields.load = function(element) {
                                          // Create a unique id field for checkboxes 
                                          if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
                                            $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
+                                           $(this).click(function(){$(this).blur();});
                                          }
                                          $(this).change(function() {
                                                           Drupal.editablefields.onchange(this);
