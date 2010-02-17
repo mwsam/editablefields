@@ -84,7 +84,8 @@ function theme_editablefields_formatter_editable($element) {
 
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
-  $node = $element['#node'];
+//  $node = $element['#node'];
+  $node = node_load($element['#node']->nid);
   $delta = $element['#item']['#delta'];
 
   if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
