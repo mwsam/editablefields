@@ -10,10 +10,13 @@ Drupal.behaviors.editablefields = function(context) {
     Drupal.editablefields.load(this);
   });
   $('div.editablefields', context).filter('.clicktoedit').not('.editablefields-processed').each(function() {
+    var len=$(this).html().length;
     $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
-    $(".editablefields_clicktoedit_message").fadeOut(3000);
-    $(this).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
-    $(this).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
+    if (len > 0) {
+      $(".editablefields_clicktoedit_message",this).fadeOut(3000);
+      $(this).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
+      $(this).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
+    }
     $(this).click(Drupal.editablefields.init);
   });
   $('div.field-label, div.field-label-inline-first, div.field-label-inline, div.field-label-inline-last', context).not('.label-processed').each(function() {
@@ -118,10 +121,13 @@ Drupal.editablefields.view = function(element) {
         //alert(response.content);
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
+        var len=response.content.length;
         $(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
-        $(".editablefields_clicktoedit_message").fadeOut(3000);
-        $(this).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
-        $(this).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
+        if (len > 0) {
+          $(".editablefields_clicktoedit_message",element).fadeOut(3000);
+          $(element).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
+          $(element).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
+        }
         $(element).bind("click",Drupal.editablefields.init);
         $(element).removeClass('editablefields_throbber');
         $(element).removeClass('editablefields-processed');
