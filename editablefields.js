@@ -14,8 +14,12 @@ Drupal.behaviors.editablefields = function(context) {
     $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
     if (len > 0) {
       $(".editablefields_clicktoedit_message",this).fadeOut(3000);
-      $(this).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
-      $(this).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
+      $(this).mouseover(function() {
+        $(".editablefields_clicktoedit_message",this).fadeIn(500);
+      });
+      $(this).mouseout(function() {
+        $(".editablefields_clicktoedit_message",this).fadeOut(500);
+      });
     }
     $(this).click(Drupal.editablefields.init);
   });
@@ -29,7 +33,7 @@ Drupal.behaviors.editablefields = function(context) {
       return false;
     });
   });
-  $('div.editablefields', context).submit(function(){
+  $('div.editablefields', context).submit(function() {
     return false;
   });
   $('input', context).not(':hidden').focus();
@@ -37,11 +41,11 @@ Drupal.behaviors.editablefields = function(context) {
   $('textarea', context).not(':hidden').focus();
 }
 
-
+// Initialize settings array.
 Drupal.editablefields = {};
+
 // Create a unique index for checkboxes
 Drupal.editablefields.checkbox_fix_index = 0;
-
 
 Drupal.editablefields.init = function() {
   $(this).unbind("click",Drupal.editablefields.init);
@@ -52,55 +56,33 @@ Drupal.editablefields.init = function() {
 }
 
 Drupal.editablefields.html_init = function(element) {
-
   if ($(element).hasClass("editablefields_REMOVE") ) {
     $(element).hide();
   }
   else {
-
     var uniqNum = Drupal.editablefields.checkbox_fix_index++;
     $(element).find(':input').each(function() {
-                                     // Create a unique id field for checkboxes 
-                                     if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
-                                       $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
-                                       $(this).click(function() {
-                                                        Drupal.editablefields.onchange(this);
-                                                      });
-                                     } else {
-                                       $(this).change(function() {
-                                                        Drupal.editablefields.onchange(this);
-                                                      });
-                                     }
-                                   });
-    
-//    $(element).find(':input').change(function() {
-//      Drupal.editablefields.onchange(this);
-//    });
+      // Create a unique id field for checkboxes.
+      if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
+        $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
+        $(this).click(function() {
+          Drupal.editablefields.onchange(this);
+        });
+      } 
+      else {
+        $(this).change(function() {
+          Drupal.editablefields.onchange(this);
+        });
+      }
+    });
 
     $(element).find(':input').blur(function() {
       Drupal.editablefields.onblur(this);
     });
-    //if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
-      //$(element).find(':input').not(':hidden').get(0).focus();
-    //}
-    //if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
-      //$(element).find(':checked').not(':hidden').get(0).focus();
-    //}
-    //if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
-      //$(element).find(':checked').not(':hidden').get(0).focus();
-    //}
-    //if ($(element).find('select').not(':hidden').hasClass('form-select')) {
-      //$(element).find(':selected').not(':hidden').select();
-      //$(element).find('select').not(':hidden').focus();
-    //}
-    //if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
-      //$(element).find('.form-submit').not(':hidden').focus();
-    //}
   }
 }
 
 Drupal.editablefields.view = function(element) {
-
   if ($(element).hasClass("editablefields_REMOVE") ) {
     $(element).hide();
   }
@@ -118,27 +100,29 @@ Drupal.editablefields.view = function(element) {
             eval(callback)(element, response);
           });
         }
-        //alert(response.content);
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
         var len=response.content.length;
         $(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
         if (len > 0) {
           $(".editablefields_clicktoedit_message",element).fadeOut(3000);
-          $(element).mouseover(function(){$(".editablefields_clicktoedit_message",this).fadeIn(500);});
-          $(element).mouseout(function(){$(".editablefields_clicktoedit_message",this).fadeOut(500);});
+          $(element).mouseover(function() {
+            $(".editablefields_clicktoedit_message",this).fadeIn(500);
+          });
+          $(element).mouseout(function() {
+            $(".editablefields_clicktoedit_message",this).fadeOut(500);
+          });
         }
         $(element).bind("click",Drupal.editablefields.init);
         $(element).removeClass('editablefields_throbber');
         $(element).removeClass('editablefields-processed');
       },
       error: function(response) {
-          //alert(Drupal.t("An error occurred at ") + url);
-          $(".messages.error").remove();
-          $(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
-          $(".messages.error").hide(0).show(1000);
-          $(element).removeClass('editablefields_throbber');
-          $(element).removeClass('editablefields-processed');
+        $(".messages.error").remove();
+        $(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
+        $(".messages.error").hide(0).show(1000);
+        $(element).removeClass('editablefields_throbber');
+        $(element).removeClass('editablefields-processed');
       },
       dataType: 'json'
     });
@@ -166,59 +150,33 @@ Drupal.editablefields.load = function(element) {
         }
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
-
         var uniqNum = Drupal.editablefields.checkbox_fix_index++;
         $(element).find(':input').each(function() {
-                                         // Create a unique id field for checkboxes 
-                                         if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
-                                           $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
-                                           $(this).click(function() {
-                                                           Drupal.editablefields.onchange(this);
-                                                         });
-                                         } else {
-                                           $(this).change(function() {
-                                                            Drupal.editablefields.onchange(this);
-                                                          });
-                                         }
-                                       });
-        
-
-//        $(element).find(':input').change(function() {
-//          Drupal.editablefields.onchange(this);
-//        });
+          // Create a unique id field for checkboxes 
+          if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
+            $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
+            $(this).click(function() {
+              Drupal.editablefields.onchange(this);
+            });
+          } else {
+            $(this).change(function() {
+              Drupal.editablefields.onchange(this);
+            });
+          }
+        });
 
         $(element).find(':input').blur(function() {
-                                         window.setTimeout(function(){Drupal.editablefields.onblur(this)},10);
-//  Drupal.editablefields.onblur(this);
+          window.setTimeout(function () {
+            Drupal.editablefields.onblur(this)
+          }, 10);
         });
-        //if ($(element).find(':input').not(':hidden').hasClass('form-text')) {
-          //$(element).find(':input').not(':hidden').get(0).focus();
-        //}
-        //if ($(element).find(':input').not(':hidden').hasClass('form-radio')) {
-          //$(element).find(':checked').not(':hidden').get(0).focus();
-        //}
-        //if ($(element).find(':input').not(':hidden').hasClass('form-checkbox')) {
-          //$(element).find(':checked').not(':hidden').get(0).focus();
-        //}
-        //if ($(element).find('select').not(':hidden').hasClass('form-select')) {
-          //$(element).find(':selected').not(':hidden').select();
-          //$(element).find('select').not(':hidden').focus();
-        //}
-        //if ($(element).find(':input').not(':hidden').hasClass('form-submit')) {
-          //$(element).find(':selected').not(':hidden').select();
-          //$(element).find('.form-submit').not(':hidden').focus();
-        //}
-        //if ($(element).find(':input').not(':hidden').hasClass('form-textarea')) {
-          //$(element).find('.form-textarea').not(':hidden').focus();
-        //}
         $(element).removeClass('editablefields_throbber');
       },
       error: function(response) {
-        //alert(Drupal.t("An error occurred at ") + url);
-          $(".messages.error").remove();
-          $(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
-          $(".messages.error").hide(0).show(1000);
-          $(element).removeClass('editablefields_throbber');
+        $(".messages.error").remove();
+        $(element).after('<div class="messages error">' + Drupal.t("An error occurred at ") + url + '</div>');
+        $(".messages.error").hide(0).show(1000);
+        $(element).removeClass('editablefields_throbber');
       },
       dataType: 'json'
     });
@@ -242,17 +200,17 @@ Drupal.editablefields.onchange = function(element) {
       element: $(element),
       success: function(msg) {
         $(element).removeClass('editablefields_throbber');
-        $(".messages.error").hide(1000, function() {$(this).remove();});
+        $(".messages.error").hide(1000, function() {
+          $(this).remove();
+        });
         Drupal.editablefields.view(element);
       },
       error: function(msg) {
-        //alert(Drupal.t("Error, unable to make update:") +"\n"+
-        //msg.responseText);
-          $(".messages.error").remove();
-          $(element).after('<div class="messages error">' + msg.responseText + '</div>');
-          $(".messages.error").hide(0).show(1000);
-          $(element).removeClass('editablefields_throbber');
-          Drupal.editablefields.load(element);
+        $(".messages.error").remove();
+        $(element).after('<div class="messages error">' + msg.responseText + '</div>');
+        $(".messages.error").hide(0).show(1000);
+        $(element).removeClass('editablefields_throbber');
+        Drupal.editablefields.load(element);
       }
     });
   }
@@ -265,21 +223,20 @@ Drupal.editablefields.onchange = function(element) {
       element: $(element),
       success: function(msg) {
         $(element).removeClass('editablefields_throbber');
-//        Drupal.editablefields.load(element);
-        // Re-enable the widget
-        $(".messages.error").hide(1000, function() {$(this).remove();});
+        // Re-enable the widget.
+        $(".messages.error").hide(1000, function() {
+          $(this).remove();
+        });
         $(element).find(':input').each(function() {
           $(this).attr("disabled", false);
         });
       },
       error: function(msg) {
-        //alert(Drupal.t("Error, unable to make update:") +"\n"+
-        //msg.responseText);
-          $(".messages.error").remove();
-          $(element).after('<div class="messages error">' + msg.responseText + '</div>');
-          $(".messages.error").hide(0).show(1000);
-          $(element).removeClass('editablefields_throbber');
-          Drupal.editablefields.load(element);
+        $(".messages.error").remove();
+        $(element).after('<div class="messages error">' + msg.responseText + '</div>');
+        $(".messages.error").hide(0).show(1000);
+        $(element).removeClass('editablefields_throbber');
+        Drupal.editablefields.load(element);
       }
     });
   }
@@ -294,12 +251,19 @@ Drupal.editablefields.onchange = function(element) {
 };
 
 Drupal.editablefields.onblur = function(element) {
+  // the matrix field should not close when leaving any of its textboxes.
+  if ($(element).parents('table.matrix')) {
+    return false;
+  }
+
   if (!$(element).hasClass('editablefields')) {
     element = $(element).parents('div.editablefields');
   }
 
   if ($(element).hasClass('clicktoedit')) {
-    $(".messages.error").hide(1000, function() {$(this).remove();});
+    $(".messages.error").hide(1000, function() {
+      $(this).remove();
+    });
     $(element).parents('div.field').find('.highlighted').removeClass('highlighted');
     Drupal.editablefields.view(element);
   }

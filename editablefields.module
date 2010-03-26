@@ -313,7 +313,8 @@ function editablefields_submit() {
       }
 
       $field = content_fields($field_name);
-      if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
+      // the matrix field identifies itself as being multivalue, but in fact, it is not.
+      if ((content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) && ($field['type'] != matrix)) {
         if ($node->{$field_name}[$delta] != $form_state['values'][$field_name][0]) {
           $node->{$field_name}[$delta] = $form_state['values'][$field_name][0];
           node_save($node);
