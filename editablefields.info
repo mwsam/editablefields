@@ -3,6 +3,7 @@ name = Editablefields
 description = "Allows you to make some view fields editable"
 dependencies[] = content
 dependencies[] = ajax_load
+dependencies[] = jquery_update
 package = CCK
 version = "6.x-2.x-dev"
 

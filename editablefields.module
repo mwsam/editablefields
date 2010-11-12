@@ -53,6 +53,12 @@ function editablefields_theme() {
       'arguments' => array('element' => NULL),
       'function' => 'theme_editablefields_formatter_editable',
       ),
+    'editablefields_clicktoedit_message' => array(
+      'arguments' => array(),
+      ),
+    'editablefields_clicktoedit_message_empty' => array(
+      'arguments' => array(),
+      ),
     );
 }
 
@@ -91,6 +97,16 @@ function theme_editablefields_formatter_editable($element) {
   if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
   }
 
+  // to disable overriding textareas just set this variable to 0
+  if(variable_get('editablefields_textareas_resizable_threshold', 25)) {
+    static $textareas_count = 0;
+    if($field['type'] == 'text' && $field['widget']['type'] == 'text_textarea') {
+      if ($textareas_count++ >= variable_get('editablefields_textareas_resizable_threshold', 25)) {
+        drupal_add_js(drupal_get_path('module', 'editablefields') . '/editablefields_overrides.js');
+      }
+    }
+  }
+
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
   if (!node_access('update', $node) || !content_access('edit', $field)) {
@@ -114,13 +130,17 @@ function theme_editablefields_formatter_editable($element) {
           'url_html' => url('editablefields_html', array('absolute' => TRUE)),
           'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),
           'url_view' => url('editablefields_view', array('absolute' => TRUE)),
-          'clicktoedit_message' => '<div class="editablefields_clicktoedit_message">'. t('[edit]') .'</div>',
+          'clicktoedit_message' => theme('editablefields_clicktoedit_message'),
+          'clicktoedit_message_empty' => theme('editablefields_clicktoedit_message_empty'),
         );
         drupal_add_js(array('editablefields' => $settings), 'setting');
       }
       $theme = $formatter['module'] . '_formatter_' . $formatter_name;
       $class = "editablefields";
-      if ($element['#formatter'] == 'clicktoedit') {
+      if ($element['#formatter'] == 'editable') {
+        $class .= " ajax-editable";
+      }
+      elseif ($element['#formatter'] == 'clicktoedit') {
         $class .= " clicktoedit";
       }
       elseif ($element['#formatter'] == 'editable_html') {
@@ -139,7 +159,18 @@ function theme_editablefields_formatter_editable($element) {
       $post = '</div>';
 
       if ($element['#formatter'] != 'editable_html') {
-        return $pre . theme($theme, $element) . $post;
+        $themed_element = theme($theme, $element);
+
+        // add the edit link for clicktoedit formatters
+        if ($element['#formatter'] == 'clicktoedit') {
+          if (!empty($themed_element)) {
+            $pre .= theme('editablefields_clicktoedit_message');
+          }
+          else {
+            $pre .= theme('editablefields_clicktoedit_message_empty');
+          }
+        }
+        return $pre . $themed_element . $post;
       }
       else {
         // $node seems to be incomplete, so we reload it
@@ -148,6 +179,14 @@ function theme_editablefields_formatter_editable($element) {
       }
     }
   }
+}
+
+function theme_editablefields_clicktoedit_message() {
+  return '<span class="editablefields_clicktoedit_message editablefields-hide">'. t('[edit]') .'</span>';
+}
+
+function theme_editablefields_clicktoedit_message_empty() {
+  return '<span class="editablefields_clicktoedit_message">'. t('[edit]') .'</span>';
 }
 
 /**

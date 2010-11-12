@@ -1,44 +1,52 @@
 // $Id$
 
+/**
+ * We use event delegation extensively for performance reasons.
+ * $.live() function can achieve the same effect but is not
+ * as efficient as this implementation. This also takes care of any additional DOM
+ * changes that might happen in the page (ie. AJAX, AHAH, etc)
+ *
+ * Further reading about event delegation:
+ *   http://blogs.sitepoint.com/2008/07/23/javascript-event-delegation-is-easier-than-you-think/
+ *   http://developer.yahoo.com/yui/examples/event/event-delegation.html
+ *   http://icant.co.uk/sandbox/eventdelegation/
+ *
+ **/
+
+// @todo: Can only have one active clicktoedit datepicker field.
+// @todo: (related to above todo) clicktoedit datepicker fields load twice after changing date.
 Drupal.behaviors.editablefields = function(context) {
-  $('div.editablefields-html-load', context).not('.clicktoedit').not('.editablefields-processed').each(function() {
-    $(this).addClass('editablefields-processed');
-    Drupal.editablefields.html_init(this);
-  });
-  $('div.editablefields', context).not('.clicktoedit').not('.editablefields-processed').each(function() {
+  // load the ajax-editable fields
+  $('div.editablefields.ajax-editable', context).not('.editablefields-processed').each(function() {
     $(this).addClass('editablefields-processed');
     Drupal.editablefields.load(this);
   });
-  $('div.editablefields', context).filter('.clicktoedit').not('.editablefields-processed').each(function() {
-    var len=$(this).html().length;
-    $(this).prepend(Drupal.settings.editablefields.clicktoedit_message);
-    if (len > 0) {
-      $(".editablefields_clicktoedit_message",this).fadeOut(3000);
-      $(this).mouseover(function() {
-        $(".editablefields_clicktoedit_message",this).fadeIn(500);
-      });
-      $(this).mouseout(function() {
-        $(".editablefields_clicktoedit_message",this).fadeOut(500);
-      });
-    }
-    $(this).click(Drupal.editablefields.init);
-  });
-  $('div.field-label, div.field-label-inline-first, div.field-label-inline, div.field-label-inline-last', context).not('.label-processed').each(function() {
-    $(this).click(function() {
-      $(this).addClass('highlighted');
-      $(this).parent().find('.editablefields').each(function() {
-        $(this).unbind("click",Drupal.editablefields.init);
-        Drupal.editablefields.load(this);
-      });
-      return false;
+
+  // We are not taking 'context' into consideration on purpose here
+  // in order to add event handlers only once per page.
+  if (!$('body').hasClass('editablefields-processed')) {
+    $('body').addClass('editablefields-processed');
+
+    // bind a global document event handler
+    $(document).bind('change click', function(event) {
+      //console.log(event);
+      if (event.type == 'change') {
+        if ($(event.target).is('input, textarea, select')) {
+          if ($(event.target).parents('.editablefields').not('.ajax-editable').length) {
+            Drupal.editablefields.onchange($(event.target).parents('.editablefields'));
+          }
+        }
+      }
+      else if (event.type == 'click') {
+        if ($(event.target).not('.ajax-editable').is('.editablefields')) {
+          Drupal.editablefields.init.call($(event.target));
+        }
+        else if ($(event.target).parent('.editablefields').not('.ajax-editable').length) {
+          Drupal.editablefields.init.call($(event.target).parent('.editablefields'));
+        }
+      }
     });
-  });
-  $('div.editablefields', context).submit(function() {
-    return false;
-  });
-  $('input', context).not(':hidden').focus();
-  $('select', context).not(':hidden').focus();
-  $('textarea', context).not(':hidden').focus();
+  }
 }
 
 // Initialize settings array.
@@ -48,38 +56,11 @@ Drupal.editablefields = {};
 Drupal.editablefields.checkbox_fix_index = 0;
 
 Drupal.editablefields.init = function() {
-  $(this).unbind("click",Drupal.editablefields.init);
+  $(this).unbind("click");
   $(this).parents('div.field').find('.field-label, .field-label-inline-first, .field-label-inline, .field-label-inline-last').addClass('highlighted');
   $(this).addClass('editablefields-processed');
   $(this).children().hide();
   Drupal.editablefields.load(this);
-}
-
-Drupal.editablefields.html_init = function(element) {
-  if ($(element).hasClass("editablefields_REMOVE") ) {
-    $(element).hide();
-  }
-  else {
-    var uniqNum = Drupal.editablefields.checkbox_fix_index++;
-    $(element).find(':input').each(function() {
-      // Create a unique id field for checkboxes.
-      if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
-        $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
-        $(this).click(function() {
-          Drupal.editablefields.onchange(this);
-        });
-      } 
-      else {
-        $(this).change(function() {
-          Drupal.editablefields.onchange(this);
-        });
-      }
-    });
-
-    $(element).find(':input').blur(function() {
-      Drupal.editablefields.onblur(this);
-    });
-  }
 }
 
 Drupal.editablefields.view = function(element) {
@@ -102,17 +83,17 @@ Drupal.editablefields.view = function(element) {
         }
         $(element).html(response.content);
         Drupal.attachBehaviors(element);
-        var len=response.content.length;
-        $(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
-        if (len > 0) {
-          $(".editablefields_clicktoedit_message",element).fadeOut(3000);
-          $(element).mouseover(function() {
-            $(".editablefields_clicktoedit_message",this).fadeIn(500);
-          });
-          $(element).mouseout(function() {
-            $(".editablefields_clicktoedit_message",this).fadeOut(500);
-          });
+        var len = response.content.length;
+
+        // there is not way for the server to know which formatter we are using for this field as the view is not
+        // available during this request so we add the message with JS instead.
+        if(len) {
+          $(element).prepend(Drupal.settings.editablefields.clicktoedit_message);
         }
+        else {
+          $(element).prepend(Drupal.settings.editablefields.clicktoedit_message_empty);
+        }
+
         $(element).bind("click",Drupal.editablefields.init);
         $(element).removeClass('editablefields_throbber');
         $(element).removeClass('editablefields-processed');
@@ -142,6 +123,14 @@ Drupal.editablefields.load = function(element) {
       url: url,
       type: 'GET',
       success: function(response) {
+        // If new datePopup settings were added, add our own onClose handler.
+        // We need to do this before calling the returned callbacks.
+        if (response.scripts.setting.datePopup) {
+          for(var id in response.scripts.setting.datePopup) {
+            response.scripts.setting.datePopup[id].settings['onClose'] = Drupal.editablefields.datepickerOnClose;
+          }
+        }
+
         // Call all callbacks.
         if (response.__callbacks) {
           $.each(response.__callbacks, function(i, callback) {
@@ -149,27 +138,44 @@ Drupal.editablefields.load = function(element) {
           });
         }
         $(element).html(response.content);
+
+        var isAjaxEditable = $(element).hasClass('ajax-editable');
+
         Drupal.attachBehaviors(element);
         var uniqNum = Drupal.editablefields.checkbox_fix_index++;
-        $(element).find(':input').each(function() {
+        $(element).find(':input').not(':hidden').each(function() {
+          var $this = $(this);
+
           // Create a unique id field for checkboxes 
-          if ($(this).attr("type") == 'checkbox' || $(this).attr("type") == 'radio') {
-            $(this).attr("id", $(this).attr("id") + '-' + uniqNum);
-            $(this).click(function() {
-              Drupal.editablefields.onchange(this);
-            });
-          } else {
-            $(this).change(function() {
+          if ($this.attr("type") == 'checkbox' || $this.attr("type") == 'radio') {
+            $this.attr("id", $this.attr("id") + '-' + uniqNum);
+          }
+
+          // attach onChange event only for ajax-editable fields
+          if(isAjaxEditable) {
+            $this.change(function() {
               Drupal.editablefields.onchange(this);
             });
           }
+
+          // datepicker fields are handled by the Drupal.editablefields.datepickerOnClose handler
+          //if (!$('[id*="datepicker"]', $this)) {
+            // add blur handler
+            $this.blur(function() {
+              window.setTimeout(function () {
+                Drupal.editablefields.onblur($this)
+              }, 10);
+            });
+          //}
+
+          // Autofocus loaded elements. We need a small timeout here.
+          if(!isAjaxEditable) {
+            window.setTimeout(function(){
+              $this.focus();
+            }, 20);
+          }
         });
 
-        $(element).find(':input').blur(function() {
-          window.setTimeout(function () {
-            Drupal.editablefields.onblur(this)
-          }, 10);
-        });
         $(element).removeClass('editablefields_throbber');
       },
       error: function(response) {
@@ -250,9 +256,10 @@ Drupal.editablefields.onchange = function(element) {
   return false;
 };
 
-Drupal.editablefields.onblur = function(element) {
-  // the matrix field should not close when leaving any of its textboxes.
-  if ($(element).parents('table.matrix')) {
+Drupal.editablefields.onblur = function(element, forceClose) {
+  // datepicker fields should collapse only when the user closes the matrix display
+  if (!forceClose && $(element).hasClass('hasDatepicker')) {
+    // this means that this handler has been called by the Drupal.editablefields.datepickerOnClose handler
     return false;
   }
 
@@ -270,3 +277,13 @@ Drupal.editablefields.onblur = function(element) {
 
   return false;
 };
+
+/**
+ * OnClose handler for datepicker fields.
+ * This makes sure that clicktoedit datepicker fields automatically
+ * blur when the datepicker gets closed. Otherwise we will have multiple
+ * datepickers with the same ID on the page.
+ */
+Drupal.editablefields.datepickerOnClose = function(dateText, inst) {
+  Drupal.editablefields.onblur($(this), true);
+}
