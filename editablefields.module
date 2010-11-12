@@ -326,13 +326,21 @@ function editablefields_submit() {
      * array with 'something' so that when the form is executed, it fills in the
      * right value - I dislike this code - JMB */
     if (is_array($node->{$field_name})) {
+      $field = content_fields($field_name);
       if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
         if (empty($form_state['values'][$field_name])) {
-          $form_state['values'][$field_name]=array('value'=>0);
+          $form_state['values'][$field_name] = array('value' => NULL);
         }
-      } else {
-        if (empty($form_state['values'][$field_name][0])) {
-          $form_state['values'][$field_name][0]=array('value'=>0);
+      }
+      else {
+        if (empty($form_state['values'][$field_name]['value'])) {
+          if($field['multiple']) {
+            $options = optionwidgets_options($field);
+            $form_state['values'][$field_name]['value'] = array_fill_keys(array_keys($options), NULL);
+          }
+          else {
+            $form_state['values'][$field_name] = array('value' => NULL);
+          }
         }
       }
 
@@ -351,7 +359,6 @@ function editablefields_submit() {
         exit();
       }
 
-      $field = content_fields($field_name);
       // the matrix field identifies itself as being multivalue, but in fact, it is not.
       if ((content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) && ($field['type'] != matrix)) {
         if ($node->{$field_name}[$delta] != $form_state['values'][$field_name][0]) {
