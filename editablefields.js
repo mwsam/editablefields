@@ -29,7 +29,6 @@ Drupal.behaviors.editablefields = function(context) {
 
     // bind a global document event handler
     $(document).bind('change click', function(event) {
-      //console.log(event);
       if (event.type == 'change') {
         if ($(event.target).is('input, textarea, select')) {
           if ($(event.target).parents('.editablefields').not('.ajax-editable').length) {
@@ -149,6 +148,10 @@ Drupal.editablefields.load = function(element) {
           // Create a unique id field for checkboxes 
           if ($this.attr("type") == 'checkbox' || $this.attr("type") == 'radio') {
             $this.attr("id", $this.attr("id") + '-' + uniqNum);
+            // change the "for" attribute for the label so that we can still click on it
+            if($this.parent('label').length) {
+              $this.parent('label').attr("for", $this.parent('label').attr("for") + '-' + uniqNum);
+            }
           }
 
           // attach onChange event only for ajax-editable fields
@@ -161,10 +164,17 @@ Drupal.editablefields.load = function(element) {
           // datepicker fields are handled by the Drupal.editablefields.datepickerOnClose handler
           //if (!$('[id*="datepicker"]', $this)) {
             // add blur handler
-            $this.blur(function() {
-              window.setTimeout(function () {
-                Drupal.editablefields.onblur($this)
-              }, 10);
+            $this.blur(function(event) {
+              if($this.attr('type') == 'checkbox' || $this.attr('type') == 'radio') {
+                if(!$(event.originalEvent.explicitOriginalTarget).parents('.editablefields').length) {
+                  Drupal.editablefields.onblur($this);
+                }
+              }
+              else {
+                window.setTimeout(function () {
+                  Drupal.editablefields.onblur($this);
+                }, 10);
+              }
             });
           //}
 
@@ -260,7 +270,7 @@ Drupal.editablefields.onblur = function(element, forceClose) {
   // datepicker fields should collapse only when the user closes the matrix display
   if (!forceClose && $(element).hasClass('hasDatepicker')) {
     // this means that this handler has been called by the Drupal.editablefields.datepickerOnClose handler
-    return false;
+    return;
   }
 
   if (!$(element).hasClass('editablefields')) {
@@ -274,8 +284,6 @@ Drupal.editablefields.onblur = function(element, forceClose) {
     $(element).parents('div.field').find('.highlighted').removeClass('highlighted');
     Drupal.editablefields.view(element);
   }
-
-  return false;
 };
 
 /**
