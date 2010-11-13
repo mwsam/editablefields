@@ -91,7 +91,8 @@ function theme_editablefields_formatter_editable($element) {
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
 //  $node = $element['#node'];
-  $node = node_load($element['#node']->nid);
+  $revision = !empty($element['#node']->vid) ? $element['#node']->vid : NULL;
+  $node = node_load($element['#node']->nid, $revision);
   $delta = $element['#item']['#delta'];
 
   if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
@@ -174,7 +175,7 @@ function theme_editablefields_formatter_editable($element) {
       }
       else {
         // $node seems to be incomplete, so we reload it
-        $node = node_load($node->nid);
+        $node = node_load($node->nid, $revision);
         return $pre . drupal_get_form('editablefields_form', $node, $field_name, $delta) . $post;
       }
     }
@@ -206,7 +207,6 @@ function editablefields_forms() {
  */
 function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
   $field = content_fields($field_name);
-
   $form = array('#node' => $node);
 //  $form_state = array('values' => array($field['field_name'] => $default_value));
   module_load_include('inc', 'content', 'includes/content.node_form');
@@ -312,6 +312,12 @@ function editablefields_submit() {
   $delta = $_POST['delta'];
 
   $node = node_load($nid);
+
+  $node_options = variable_get('node_options_'. $node->type, array('status', 'promote'));
+  $node->revision = in_array('revision', $node_options);
+  if($node->revision) {
+    $node->log = t('%field_name updated by editablefields.', array('%field_name' => $field_name));
+  }
 
   if (node_access('update', $node)) {
 
