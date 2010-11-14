@@ -332,28 +332,46 @@ function editablefields_submit() {
      * array with 'something' so that when the form is executed, it fills in the
      * right value - I dislike this code - JMB */
     if (is_array($node->{$field_name})) {
-      $field = content_fields($field_name);
-      if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
-        if (empty($form_state['values'][$field_name])) {
-          $form_state['values'][$field_name] = array('value' => NULL);
-        }
-      }
-      else {
-        if (empty($form_state['values'][$field_name]['value'])) {
-          if($field['multiple']) {
-            $options = optionwidgets_options($field);
-            $form_state['values'][$field_name]['value'] = array_fill_keys(array_keys($options), NULL);
+      $field = content_fields($field_name, $node->type);
+
+      $items = &$form_state['values'][$field_name];
+
+      if (empty($items)) {
+        foreach (array_keys($field['columns']) as $column) {
+          if ($field['multiple']) {
+            $items[$delta][$column][] = NULL;
           }
           else {
-            $form_state['values'][$field_name] = array('value' => NULL);
+            $items[$column] = NULL;
           }
         }
       }
 
+      if (isset($items['value'])) {
+        if (!($field['widget']['type'] == 'optionwidgets_buttons' && $field['multiple'])) {
+          $items = array($items);
+        }
+      }
+
+      // go through content_set_empty if this is NOT a checkbox multi valued element
+      if (!($field['widget']['type'] == 'optionwidgets_buttons' && $field['multiple'])) {
+        $items = content_set_empty($field, $items);
+      }
+
+      switch ($field['type']) {
+        case 'nodereference':
+        case 'userreference':
+          if ($field['multiple']) {
+            reset($field['columns']);
+            $items[key($field['columns'])] = array_pop($items);
+          }
+          break;
+      }
+
       drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
-      
+
       $err = drupal_get_messages();
-      
+
       if (count($err) > 0) {
         drupal_set_header('HTTP/1.1 404 Not Found');
         // format the error message suitable for a popup window in simple text.
