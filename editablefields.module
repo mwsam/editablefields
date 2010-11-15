@@ -102,13 +102,10 @@ function theme_editablefields_formatter_editable($element) {
 
   $field_name = $element['#field_name'];
   $field = content_fields($field_name);
-//  $node = $element['#node'];
+
   $revision = !empty($element['#node']->vid) ? $element['#node']->vid : NULL;
   $node = node_load($element['#node']->nid, $revision);
   $delta = $element['#item']['#delta'];
-
-  if (content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) {
-  }
 
   // to disable overriding textareas just set this variable to 0
   if(variable_get('editablefields_textareas_resizable_threshold', 25)) {
@@ -148,6 +145,14 @@ function theme_editablefields_formatter_editable($element) {
         );
         drupal_add_js(array('editablefields' => $settings), 'setting');
       }
+
+      // [andreiashu] not sure how this works exactly but it does...
+      if (content_handle('widget', 'multiple values', $field) != CONTENT_HANDLE_CORE) {
+        if ($delta != 0) {
+          return;
+        }
+      }
+
       $theme = $formatter['module'] . '_formatter_' . $formatter_name;
       $class = "editablefields";
       if ($element['#formatter'] == 'editable') {
@@ -158,14 +163,6 @@ function theme_editablefields_formatter_editable($element) {
       }
       elseif ($element['#formatter'] == 'editable_html') {
         $class .= " editablefields-html-load";
-      }
-      // CORE handling shoudl have a div on each,
-      // MODULE handling should have a div surounding all elements (treat it as
-      // one field) (So, we'll arrainge for the JS to remove the rest!)
-      if (content_handle('widget', 'multiple values', $field) != CONTENT_HANDLE_CORE) {
-        if ($delta != 0) {
-          $class = "editablefields editablefields_REMOVE";
-        }
       }
 
       $pre = '<div class="' . $class . '" nid="' . $node->nid . '" field="' . $field_name . '" delta="' . $delta . '">';
