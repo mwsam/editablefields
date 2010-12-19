@@ -45,6 +45,15 @@ Drupal.behaviors.editablefields = function(context) {
         }
       }
     });
+
+    // prevent form submits for editable textfields when the Enter key is hit
+    // @see: http://drupal.org/node/1002582
+    $(document).keydown(function(event) {
+      if (event.keyCode == '13' && $(event.target).is(':text') &&
+           $(event.target).parents('.editablefields').not('.ajax-editable').length) {
+        event.preventDefault();
+      }
+    });
   }
 }
 
