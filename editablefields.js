@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * We use event delegation extensively for performance reasons.

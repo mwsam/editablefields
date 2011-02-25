@@ -1,4 +1,3 @@
-; $Id$
 name = Editablefields
 description = "Allows you to make some view fields editable"
 dependencies[] = content
