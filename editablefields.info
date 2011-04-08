@@ -1,9 +1,6 @@
-name = Editablefields
-description = "Allows you to make some view fields editable"
-dependencies[] = content
-dependencies[] = ajax_load
-dependencies[] = jquery_update
-package = CCK
-version = "6.x-3.x-dev"
+name = Editable Fields
+description = "Allows you to make some fields editable from the display."
+package = Fields
+version = "7.x-3.x-dev"
 
-core = 6.x
+core = 7.x
