@@ -65,55 +65,101 @@ function editablefields_theme() {
  * Implementation of hook_field_formatter_info().
  */
 function editablefields_field_formatter_info() {
+  $all_types = array_keys(field_info_field_types());
   return array(
     'editable' => array(
       'label' => t('Editable (Ajax)'),
-      'field types' => array_keys(_content_field_types()),
-      ),
+      'field types' => $all_types,
+    ),
     'editable_html' => array(
       'label' => t('Editable (HTML)'),
-      'field types' => array_keys(_content_field_types()),
-      ),
+      'field types' => $all_types,
+    ),
     'clicktoedit' => array(
       'label' => t('Click to Edit'),
-      'field types' => array_keys(_content_field_types()),
-      ),
-    );
+      'field types' => $all_types,
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_library().
+ */
+function editablefields_library() {
+  $libraries['editablefields'] = array(
+    'title' => 'Editable Fields',
+    'js' => array(
+      drupal_get_path('module', 'editablefields') . '/editablefields.js' => array(),
+    ),
+    'css' => array(
+      drupal_get_path('module', 'editablefields') . '/editablefields.css' => array(),
+    ),
+    'dependencies' => array(
+      array('system', 'drupal.form'),
+    ),
+  );
+
+  // TODO: figure out what to do with those settings.
+/*
+$settings = array(
+  'url_html' => url('editablefields_html', array('absolute' => TRUE)),
+  'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),
+  'url_view' => url('editablefields_view', array('absolute' => TRUE)),
+  'clicktoedit_message' => theme('editablefields_clicktoedit_message'),
+  'clicktoedit_message_empty' => theme('editablefields_clicktoedit_message_empty'),
+);
+drupal_add_js(array('editablefields' => $settings), 'setting');
+*/
+
+  return $libraries;
+}
+
+function editablefields_fallback_formatter($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  // TODO: we need to support a fallback formatter here.
+  $display['module'] = 'text';
+  $display['type'] = 'text_default';
+  $function = $display['module'] . '_field_formatter_view';
+  if (function_exists($function)) {
+    return $function($entity_type, $entity, $field, $instance, $langcode, $items, $display);
+  }
+  else {
+    return '';
+  }
 }
 
 /**
- * Theme the editable field.
+ * Implements hook_field_formatter_view().
  */
-function theme_editablefields_formatter_editable($element) {
-  static $js_ready;
-
-  $field_name = $element['#field_name'];
-  $field = content_fields($field_name);
-
-  $revision = !empty($element['#node']->vid) ? $element['#node']->vid : NULL;
-  $node = node_load($element['#node']->nid, $revision);
-  $delta = $element['#item']['#delta'];
-
-  // to disable overriding textareas just set this variable to 0
-  if(variable_get('editablefields_textareas_resizable_threshold', 25)) {
-    static $textareas_count = 0;
-    if($field['type'] == 'text' && $field['widget']['type'] == 'text_textarea') {
-      if ($textareas_count++ >= variable_get('editablefields_textareas_resizable_threshold', 25)) {
-        drupal_add_js(drupal_get_path('module', 'editablefields') . '/editablefields_overrides.js');
-      }
-    }
-  }
+function editablefields_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $field_name = $field['field_name'];
+  list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
-  if (!node_access('update', $node) || !content_access('edit', $field)) {
-    // can't edit
-    $formatter_name = 'default';
-    if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
-      $theme = $formatter['module'] . '_formatter_' . $formatter_name;
-      return theme($theme, $element);
-    }
+  if (!entity_access('update', $entity_type, $entity) || !field_access('edit', $field, $entity_type, $entity)) {
+    // Can't edit.
+    return editablefields_fallback_formatter($entity_type, $entity, $field, $instance, $langcode, $items, $display);
   }
+
+  // Now either we want to display an edit form directly, or we want to inject
+  // edit code into the existing formatter.
+  switch ($display['type']) {
+    case 'editable':
+    case 'clicktoedit':
+      // Just add a link for edition.
+      $element = editablefields_fallback_formatter($entity_type, $entity, $field, $instance, $langcode, $items, $display);
+      $element['#attached']['library'][] = array('editablefields', 'editablefields');
+      return $element;
+
+    case 'editable_html':
+      // Inject the HTML form.
+      return array(
+        0 => drupal_get_form('editablefields_form__' . $entity_type . '__' . $id . '__' . $vid, $entity_type, $entity, $field, $instance, $langcode, $display),
+      );
+  }
+
+/*
   else {
     $formatter_name = 'default';
     if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
@@ -172,10 +218,11 @@ function theme_editablefields_formatter_editable($element) {
       else {
         // $node seems to be incomplete, so we reload it
         $node = node_load($node->nid, $revision);
-        return $pre . drupal_get_form('editablefields_form', $node, $field_name, $delta) . $post;
+        return $pre . drupal_get_form('editablefields_form', $entity_type, $entity, $field, $instance, $langcode) . $post;
       }
     }
   }
+  */
 }
 
 function theme_editablefields_clicktoedit_message() {
@@ -187,56 +234,119 @@ function theme_editablefields_clicktoedit_message_empty() {
 }
 
 /**
- * Implementation of hook_forms().
+ * Implements hook_forms().
  */
-function editablefields_forms() {
+function editablefields_forms($form_id) {
   $forms = array();
-  $forms['editablefields_form'] = array(
-    'callback' => 'editablefields_form_builder',
-//    'callback arguments' => array('node', 'field_name'),
-  );
+  if (preg_match('/^editablefields_form_/', $form_id)) {
+    $forms[$form_id] = array(
+      'callback' => 'editablefields_form',
+    );
+  }
   return $forms;
 }
 
 /**
  * Form builder callback.
  */
-function editablefields_form_builder(&$form_state, $node, $field_name, $delta) {
-  $field = content_fields($field_name);
-  $form = array('#node' => $node);
-//  $form_state = array('values' => array($field['field_name'] => $default_value));
-  module_load_include('inc', 'content', 'includes/content.node_form');
-  $form['#field_info'] = array($field['field_name'] => $field);
-  $form = content_field_form($form, $form_state, $field, $delta);
+function editablefields_form($form, &$form_state, $entity_type, $entity, $field, $instance, $langcode, $display) {
+  // TODO: set a #action to a "safe" URL so that forms embedded in Views do not
+  // break when the result set displayed in the Views changes.
 
-  unset($form[$field_name]['#title']);
-  if (is_array($form[$field_name][0]) && !is_array($form[$field_name][1])) {
-    unset($form[$field_name][0]['#title']);
+  // Set #parents to 'top-level' by default.
+  $form += array('#parents' => array());
+
+  // Set the base properties of the form.
+  list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
+  $form['#entity_type'] = $entity_type;
+  $form['#bundle'] = $bundle;
+  $form['#field'] = $field;
+  $form['#instance'] = $instance;
+  $form['#langcode'] = $langcode;
+  $form['#display'] = $display;
+  // TODO: should be wrapped in a !isset().
+  $form_state['entity'] = $entity;
+
+  // Set the IDs of the entity.
+  $info = entity_get_info($entity_type);
+  foreach (array('id', 'revision', 'bundle') as $key) {
+    // Objects being created might not have id/vid yet.
+    $id = isset($entity->{$info['entity keys']['id']}) ? $entity->{$info['entity keys']['id']} : NULL;
+    if (isset($info['entity keys'][$key]) && isset($entity->{$info['entity keys'][$key]})) {
+      $form[$info['entity keys'][$key]] = array(
+        '#type' => 'value',
+        '#value' => $entity->{$info['entity keys'][$key]},
+      );
+    }
   }
 
-  $form['editablefields_node_nid'] = array(
-    '#type' => 'hidden',
-    '#value' => $node->nid,
-  );
+  // Remove the title of the field.
+  $instance['label'] = '';
 
-  $form['#field_info'] = array($field['field_name'] => $field);
-  $form['#pre_render'] = array('_editablefields_pre_render');
+  // Insert the field form.
+  $items = $entity->{$field['field_name']};
+  $items = $items['und']; // TODO: Hack.
+  $form += field_default_form($entity_type, $entity, $field, $instance, $langcode, $items, $form, $form_state);
+
+  // TODO: implement better.
+  $wrapper_id = drupal_html_id('editablefields');
+  $form['#prefix'] = '<div id="' . $wrapper_id . '">';
+  $form['#suffix'] = '</div>';
+
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#ajax' => array(
+      'callback' => 'editablefields_form_update',
+      'wrapper' => $wrapper_id,
+      'effect' => 'fade',
+      'speed' => 'fast',
+    ),
+  );
 
   return $form;
 }
 
 /**
- * Resizable Textarea has an issue with setting focus.
- * To circumvent this we have to set the forms fields #resizable field to FALSE.
- * We have to use pre_render because the here the field's #type is still textarea.
- * TODO Keep editable_HTML and editable_JAVA fields resizable, they don't have the focus issue.
+ * Ajax callback: process an Ajax submission of the form.
  */
-function _editablefields_pre_render(&$form) {
-  if ($form['field_name'][0]['value']['#type'] == 'textarea') {
-    $form['field_name'][0]['value']['#resizable'] = FALSE;
+function editablefields_form_update($form, $form_state) {
+  if (!empty($form_state['executed'])) {
+    // Form executed successfully: return the rendered version of the field.
+
+    // Prevent the forms we might generate here from submitting again.
+    $_POST = array();
+
+    $formatted_field = field_view_field($form['#entity_type'], $form_state['entity'], $form['#field']['field_name'], $form['#display'], $form['#langcode']);
+    // Remove the wrappers.
+    $formatted_field = array_intersect_key($formatted_field, element_children($formatted_field));
+    return $formatted_field;
   }
-  return $form;
+  else {
+    // Form failed to properly execute, rerender it.
+    return $form;
+  }
 }
+
+/**
+ * Form validation callback: process the fields.
+ */
+function editablefields_form_validate(&$form, &$form_state) {
+  entity_form_field_validate($form['#entity_type'], $form, $form_state);
+}
+
+/**
+ * Form submit callback: save the field modifications.
+ */
+function editablefields_form_submit(&$form, &$form_state) {
+  $entity = $form_state['entity'];
+  entity_form_submit_build_entity($form['#entity_type'], $entity, $form, $form_state);
+
+  // TODO: needs a try / catch.
+  entity_save($form['#entity_type'], $entity);
+}
+
 /**
  * Menu callback: ajax view.
  */
@@ -295,7 +405,7 @@ function editablefields_html() {
     // Register the JavaScript callback for this module.
     $object->__callbacks = array();
     // Allow other modules to extend the data returned.
-    drupal_alter('ajax_data', $object, 'editablefields', $html);
+    // drupal_alter('ajax_data', $object, 'editablefields', $html);
     drupal_json($object);
   }
   else {
