@@ -6,82 +6,17 @@
  */
 
 /**
- * Implementation of hook_menu().
- */
-function editablefields_menu() {
-  global $user;
-  $items = array();
-
-  // Admin pages:
-  $items['editablefields_view'] = array(
-    'page callback' => 'editablefields_view',
-    'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK,
-    'title' => 'ajax view',
-    );
-  $items['editablefields_html'] = array(
-    'page callback' => 'editablefields_html',
-    'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK,
-    'title' => 'ajax form',
-    );
-  $items['editablefields_submit'] = array(
-    'page callback' => 'editablefields_submit',
-    'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK,
-    'title' => 'ajax submit',
-    );
-
-  return $items;
-}
-
-/**
- * Implementation of hook_theme().
- */
-function editablefields_theme() {
-  return array(
-    'editablefields_formatter_editable' => array(
-      'arguments' => array('element' => NULL),
-      'function' => 'theme_editablefields_formatter_editable',
-      ),
-    'editablefields_formatter_editable_html' => array(
-      'arguments' => array('element' => NULL),
-      'function' => 'theme_editablefields_formatter_editable',
-      ),
-    'editablefields_formatter_clicktoedit' => array(
-      'arguments' => array('element' => NULL),
-      'function' => 'theme_editablefields_formatter_editable',
-      ),
-    'editablefields_clicktoedit_message' => array(
-      'arguments' => array(),
-      ),
-    'editablefields_clicktoedit_message_empty' => array(
-      'arguments' => array(),
-      ),
-    );
-}
-
-/**
  * Implementation of hook_field_formatter_info().
  */
 function editablefields_field_formatter_info() {
   $all_types = array_keys(field_info_field_types());
   return array(
     'editable' => array(
-      'label' => t('Editable (Ajax)'),
-      'field types' => $all_types,
-    ),
-    'editable_html' => array(
-      'label' => t('Editable (HTML)'),
-      'field types' => $all_types,
-    ),
-    'clicktoedit' => array(
-      'label' => t('Click to Edit'),
+      'label' => t('Editable'),
       'field types' => $all_types,
     ),
   );
 }
-
 
 /**
  * Implements hook_library().
@@ -99,18 +34,6 @@ function editablefields_library() {
       array('system', 'drupal.form'),
     ),
   );
-
-  // TODO: figure out what to do with those settings.
-/*
-$settings = array(
-  'url_html' => url('editablefields_html', array('absolute' => TRUE)),
-  'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),
-  'url_view' => url('editablefields_view', array('absolute' => TRUE)),
-  'clicktoedit_message' => theme('editablefields_clicktoedit_message'),
-  'clicktoedit_message_empty' => theme('editablefields_clicktoedit_message_empty'),
-);
-drupal_add_js(array('editablefields' => $settings), 'setting');
-*/
 
   return $libraries;
 }
@@ -131,106 +54,27 @@ function editablefields_fallback_formatter($entity_type, $entity, $field, $insta
 /**
  * Implements hook_field_formatter_view().
  */
-function editablefields_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+function editablefields_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, &$items, $display) {
   $field_name = $field['field_name'];
   list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
 
   // See if access to this form element is restricted,
   // if so, skip widget processing and just set the value.
+  /*
   if (!entity_access('update', $entity_type, $entity) || !field_access('edit', $field, $entity_type, $entity)) {
     // Can't edit.
     return editablefields_fallback_formatter($entity_type, $entity, $field, $instance, $langcode, $items, $display);
   }
+  */
 
-  // Now either we want to display an edit form directly, or we want to inject
-  // edit code into the existing formatter.
   switch ($display['type']) {
     case 'editable':
-    case 'clicktoedit':
-      // Just add a link for edition.
-      $element = editablefields_fallback_formatter($entity_type, $entity, $field, $instance, $langcode, $items, $display);
-      $element['#attached']['library'][] = array('editablefields', 'editablefields');
-      return $element;
-
-    case 'editable_html':
       // Inject the HTML form.
+      $items = array(0 => array());
       return array(
         0 => drupal_get_form('editablefields_form__' . $entity_type . '__' . $id . '__' . $vid, $entity_type, $entity, $field, $instance, $langcode, $display),
       );
   }
-
-/*
-  else {
-    $formatter_name = 'default';
-    if ($formatter = _content_get_formatter($formatter_name, $field['type'])) {
-      if (!isset($js_ready)) {
-        $js_ready = TRUE;
-        drupal_add_js('misc/jquery.form.js');
-        drupal_add_js(drupal_get_path('module', 'editablefields') . '/editablefields.js');
-        drupal_add_css(drupal_get_path('module', 'editablefields') . '/editablefields.css');
-
-        $settings = array(
-          'url_html' => url('editablefields_html', array('absolute' => TRUE)),
-          'url_submit' => url('editablefields_submit', array('absolute' => TRUE)),
-          'url_view' => url('editablefields_view', array('absolute' => TRUE)),
-          'clicktoedit_message' => theme('editablefields_clicktoedit_message'),
-          'clicktoedit_message_empty' => theme('editablefields_clicktoedit_message_empty'),
-        );
-        drupal_add_js(array('editablefields' => $settings), 'setting');
-      }
-
-      // [andreiashu] not sure how this works exactly but it does...
-      if (content_handle('widget', 'multiple values', $field) != CONTENT_HANDLE_CORE) {
-        if ($delta != 0) {
-          return;
-        }
-      }
-
-      $theme = $formatter['module'] . '_formatter_' . $formatter_name;
-      $class = "editablefields";
-      if ($element['#formatter'] == 'editable') {
-        $class .= " ajax-editable";
-      }
-      elseif ($element['#formatter'] == 'clicktoedit') {
-        $class .= " clicktoedit";
-      }
-      elseif ($element['#formatter'] == 'editable_html') {
-        $class .= " editablefields-html-load";
-      }
-
-      $pre = '<div class="' . $class . '" nid="' . $node->nid . '" field="' . $field_name . '" delta="' . $delta . '">';
-      $post = '</div>';
-
-      if ($element['#formatter'] != 'editable_html') {
-        $themed_element = theme($theme, $element);
-
-        // add the edit link for clicktoedit formatters
-        if ($element['#formatter'] == 'clicktoedit') {
-          if (!empty($themed_element)) {
-            $pre .= theme('editablefields_clicktoedit_message');
-          }
-          else {
-            $pre .= theme('editablefields_clicktoedit_message_empty');
-          }
-        }
-        return $pre . $themed_element . $post;
-      }
-      else {
-        // $node seems to be incomplete, so we reload it
-        $node = node_load($node->nid, $revision);
-        return $pre . drupal_get_form('editablefields_form', $entity_type, $entity, $field, $instance, $langcode) . $post;
-      }
-    }
-  }
-  */
-}
-
-function theme_editablefields_clicktoedit_message() {
-  return '<span class="editablefields_clicktoedit_message editablefields-hide">'. t('[edit]') .'</span>';
-}
-
-function theme_editablefields_clicktoedit_message_empty() {
-  return '<span class="editablefields_clicktoedit_message">'. t('[edit]') .'</span>';
 }
 
 /**
@@ -285,7 +129,7 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
 
   // Insert the field form.
   $items = $entity->{$field['field_name']};
-  $items = $items['und']; // TODO: Hack.
+  $items = isset($items[$langcode]) ? $items[$langcode] : array();
   $form += field_default_form($entity_type, $entity, $field, $instance, $langcode, $items, $form, $form_state);
 
   // TODO: implement better.
@@ -295,6 +139,7 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
+    '#name' => 'op-' . $wrapper_id,
     '#type' => 'submit',
     '#value' => t('Save'),
     '#ajax' => array(
@@ -345,179 +190,4 @@ function editablefields_form_submit(&$form, &$form_state) {
 
   // TODO: needs a try / catch.
   entity_save($form['#entity_type'], $entity);
-}
-
-/**
- * Menu callback: ajax view.
- */
-function editablefields_view() {
-
-  $nid = arg(1);
-  $field_name = arg(2);
-  $delta = arg(3);
-  $node = node_load($nid);
-  drupal_set_header('Content-Type: text; charset=utf-8');
-//  $html = node_view($node, FALSE, FALSE, FALSE);
-  // this required traversing the entire node to get the field (and doesn't work
-  // for checkboxes anyway)
-
-  $field = content_fields($field_name, $node->type);
-
-  $field['display_settings']['label']['format']='hidden';
-  // We have 2 reasonable choices here. We COULD use 'clicktoedit' and end up
-  // with the same HTML - then we could strip that HTML down to remove the
-  // surrounding 'click to edit' div (which we dont want, as we'll be replacing
-  // the html inside one of those div's)
-  // or we can simply use the 'defualt' formatter - which wont have the click to
-  // edit inside it  - and is hard coded into this module (for now) anyway!
-  $field['display_settings']['full']['format']='default';
-  $html=content_view_field($field,$node);
-  
-  $messages = drupal_get_messages('status', TRUE);
-  if (count($messages) > 0) {
-    foreach ($messages as $type => $messages) {
-      foreach ($messages as $message) {
-        $output .= '<div class="messages ' . $type . '">' . $message . "</div>";
-      }
-    }
-  }
-
-  $object = new stdClass();
-  $object->content = $output . $html.drupal_render($node->content[$field_name]);
-  drupal_json($object);
-  exit();
-}
-
-/**
- * Menu callback: ajax form.
- */
-function editablefields_html() {
-  $nid = arg(1);
-  $field_name = arg(2);
-  $delta = arg(3);
-  $node = node_load($nid);
-
-  if (node_access('update', $node)) {
-    //  $html = _editablefields_create_form($node, $field_name);
-    $html = drupal_get_form('editablefields_form', $node, $field_name, $delta);
-    $object = new stdClass();
-    $object->content = $html;
-    // Register the JavaScript callback for this module.
-    $object->__callbacks = array();
-    // Allow other modules to extend the data returned.
-    // drupal_alter('ajax_data', $object, 'editablefields', $html);
-    drupal_json($object);
-  }
-  else {
-    drupal_not_found();
-  }
-  exit();
-}
-
-/**
- * Menu callback: ajax submit.
- */
-function editablefields_submit() {
-  $nid = $_POST['nid'];
-  $field_name = $_POST['field'];
-  $delta = $_POST['delta'];
-
-  $node = node_load($nid);
-
-  $node_options = variable_get('node_options_'. $node->type, array('status', 'promote'));
-  $node->revision = in_array('revision', $node_options);
-  if($node->revision) {
-    $node->log = t('%field_name updated by editablefields.', array('%field_name' => $field_name));
-  }
-
-  if (node_access('update', $node)) {
-
-    if (!isset($_POST[$field_name])) {
-      $_POST[$field_name] = array();
-    }
-
-    $form_state = array('values' => $_POST);
-
-    /* it seems that the serializer does not serialize e.g. un-checked
-     * checkboxes. Leaving them as empty arrays. This FILTHY hack fills in the
-     * array with 'something' so that when the form is executed, it fills in the
-     * right value - I dislike this code - JMB */
-    if (is_array($node->{$field_name})) {
-      $field = content_fields($field_name, $node->type);
-
-      $items = &$form_state['values'][$field_name];
-
-      if (empty($items)) {
-        foreach (array_keys($field['columns']) as $column) {
-          if ($field['multiple']) {
-            $items[$delta][$column][] = NULL;
-          }
-          else {
-            $items[$column] = NULL;
-          }
-        }
-      }
-
-      if (isset($items['value'])) {
-        if (!($field['widget']['type'] == 'optionwidgets_buttons' && $field['multiple'])) {
-          $items = array($items);
-        }
-      }
-
-      // go through content_set_empty if this is NOT a checkbox multi valued element
-      if (!($field['widget']['type'] == 'optionwidgets_buttons' && $field['multiple'])) {
-        $items = content_set_empty($field, $items);
-      }
-
-      switch ($field['type']) {
-        case 'nodereference':
-        case 'userreference':
-          if ($field['multiple']) {
-            reset($field['columns']);
-            $items[key($field['columns'])] = array_pop($items);
-          }
-          break;
-      }
-
-      drupal_execute('editablefields_form', $form_state, $node, $field_name, $delta);
-
-      $err = drupal_get_messages();
-
-      if (count($err) > 0) {
-        drupal_set_header('HTTP/1.1 404 Not Found');
-        // format the error message suitable for a popup window in simple text.
-        foreach ($err as $type => $messages) {
-          foreach ($messages as $message) {
-            print $type . ' : ' . $message . "\n";
-          }
-        }
-        exit();
-      }
-
-      // the matrix field identifies itself as being multivalue, but in fact, it is not.
-      if ((content_handle('widget', 'multiple values', $field) == CONTENT_HANDLE_CORE) && ($field['type'] != matrix)) {
-        if ($node->{$field_name}[$delta] != $form_state['values'][$field_name][0]) {
-          $node->{$field_name}[$delta] = $form_state['values'][$field_name][0];
-          node_save($node);
-        }
-      }
-      else {
-        if ($node->{$field_name} != $form_state['values'][$field_name]) {
-          $node->{$field_name} = $form_state['values'][$field_name];
-          node_save($node);
-        }
-      }
-      // make sure sensible headers etc are sent...
-      drupal_set_header('Content-Type: text; charset=utf-8');
-    }
-    else {
-      drupal_set_header('HTTP/1.1 404 Not Found');
-      print t('No field found, of name: %field', array('%field' => $field_name));
-    }
-  }
-  else {
-    drupal_set_header('HTTP/1.1 404 Not Found');
-    print t('No write permissions for %field', array('%field' => $field_name));
-  }
-  exit();
 }
