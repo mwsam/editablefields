@@ -1,15 +1,15 @@
 (function ($) {
 Drupal.behaviors.editablefields_submit = {
   attach: function (context) {
-    $('form.editable-field').once('editablefield', function() {
+    $('.editablefield-item').once('editablefield', function() {
       var $this = $(this);
 
       // There is only one editable field in that form, we can hide the submit
       // button.
       if ($this.find('input[type=text],textarea,select').length == 1) {
         $this.find('input.form-submit').hide();
-        $this.change(function() {
-          $(this).find('input.form-submit').triggerHandler('click');
+        $this.find('input[type=text],textarea,select').change(function() {
+          $this.find('input.form-submit').triggerHandler('click');
         });
       }
     });
