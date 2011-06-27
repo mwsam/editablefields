@@ -24,14 +24,15 @@ function editablefields_field_formatter_info() {
 function editablefields_library() {
   $libraries['editablefields'] = array(
     'title' => 'Editable Fields',
+    'version' => '1.x',
     'js' => array(
-      drupal_get_path('module', 'editablefields') . '/editablefields.js' => array(),
-    ),
-    'css' => array(
-      drupal_get_path('module', 'editablefields') . '/editablefields.css' => array(),
+      drupal_get_path('module', 'editablefields') . '/editablefields.js' => array('group' => JS_DEFAULT + 1),
     ),
     'dependencies' => array(
       array('system', 'drupal.form'),
+      // editablefields.js contains a small override to the autocomplete code.
+      // as a consequence, we need to load the autocomplete code unconditionnally.
+      array('system', 'drupal.autocomplete'),
     ),
   );
 
@@ -100,6 +101,8 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
   // Set #parents to 'top-level' by default.
   $form += array('#parents' => array());
 
+  $form['#attached']['library'][] = array('editablefields', 'editablefields');
+
   // Set the base properties of the form.
   list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
   $form['#entity_type'] = $entity_type;
@@ -136,6 +139,7 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
   $wrapper_id = drupal_html_id('editablefields');
   $form['#prefix'] = '<div id="' . $wrapper_id . '">';
   $form['#suffix'] = '</div>';
+  $form['#attributes'] = array('class' => 'editable-field');
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
@@ -146,7 +150,8 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
       'callback' => 'editablefields_form_update',
       'wrapper' => $wrapper_id,
       'effect' => 'fade',
-      'speed' => 'fast',
+      'event' => 'click',
+      'speed' => 'slow',
     ),
   );
 
