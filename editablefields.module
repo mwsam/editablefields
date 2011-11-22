@@ -230,7 +230,7 @@ function editablefields_field_formatter_view($entity_type, $entity, $field, $ins
 
     $items = array(0 => array());
     return array(
-      0 => '<!--form-item-' . $field_id . '--' . $row_id . '-->',
+      0 => array('#markup' => '<!--form-item-' . $field_id . '--' . $row_id . '-->'),
     );
   }
   else {
