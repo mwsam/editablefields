@@ -12,6 +12,21 @@ Drupal.behaviors.editablefields_submit = {
           $this.find('input.form-submit').triggerHandler('click');
         });
       }
+
+      var submitName = 'input.form-submit.editablefield-edit-hover';
+      var linkName = '.editablefield-hover-link';
+
+      var $submit = $this.find(submitName);
+      $submit.hide().after('<a href="#" class="editablefield-hover-link">' + $submit.attr('value') + '</a>');
+
+      $this.find(linkName).hide().click(function () {
+        $this.find(submitName).click();
+        return false;
+      });
+
+      $this.hover(function () {
+        $this.find(linkName).fadeToggle('fast');
+      });
     });
   }
 };

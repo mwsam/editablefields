@@ -18,6 +18,7 @@ function editablefields_field_formatter_info() {
         'fallback_format' => NULL,
         'fallback_settings' => array(),
         'click_to_edit' => FALSE,
+        'click_to_edit_style' => 'button',
         'empty_text' => '',
       ),
     ),
@@ -28,11 +29,15 @@ function editablefields_field_formatter_info() {
  * Implements hook_library().
  */
 function editablefields_library() {
+  $path = drupal_get_path('module', 'editablefields');
   $libraries['editablefields'] = array(
     'title' => 'Editable Fields',
     'version' => '1.x',
     'js' => array(
-      drupal_get_path('module', 'editablefields') . '/editablefields.js' => array('group' => JS_DEFAULT + 1),
+      $path . '/editablefields.js' => array('group' => JS_DEFAULT + 1),
+    ),
+    'css' => array(
+      $path . '/editablefields.css' => array('group' => CSS_DEFAULT + 1),
     ),
     'dependencies' => array(
       array('system', 'drupal.form'),
@@ -64,6 +69,17 @@ function editablefields_field_formatter_settings_form($field, $instance, $view_m
     '#title' => t('Click to edit'),
     '#default_value' => $settings['click_to_edit'],
   );
+
+  $element['click_to_edit_style'] = array(
+    '#type' => 'select',
+    '#title' => t('Click to edit style'),
+    '#options' => array(
+      'button' => t('Button'),
+      'hover' => t('Hover'),
+    ),
+    '#default_value' => $settings['click_to_edit_style'],
+  );
+
   $element['empty_text'] = array(
     '#type' => 'textarea',
     '#rows' => 3,
@@ -93,6 +109,15 @@ function editablefields_field_formatter_settings_form($field, $instance, $view_m
         'effect' => 'fade',
       ),
     );
+
+    $field_name = $form_state['triggering_element']['#field_name'];
+    $element['click_to_edit_style'] += array(
+      '#states' => array(
+        'visible' => array(
+          ':input[name="fields[' . $field_name . '][settings_edit_form][settings][click_to_edit]"]' => array('checked' => TRUE),
+        ),
+      ),
+    );
   }
   else if (isset($form_state['form_id']) && $form_state['form_id'] == 'views_ui_config_item_form') {
     // Views UI.
@@ -102,6 +127,9 @@ function editablefields_field_formatter_settings_form($field, $instance, $view_m
       ),
       '#submit' => array('views_ui_config_item_form_submit_temporary'),
       '#executes_submit_callback' => TRUE,
+    );
+    $element['click_to_edit_style'] += array(
+      '#dependency' => array('edit-options-settings-click-to-edit' => array(1)),
     );
   }
 
@@ -333,6 +361,7 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
     );
   }
   else {
+    $edit_style = isset($display['settings']['click_to_edit_style']) ? $display['settings']['click_to_edit_style'] : 'button';
     $items = $entity->{$field['field_name']};
     $items = isset($items[$langcode]) ? $items[$langcode] : array();
     $shield = new EditableFieldsShield();
@@ -351,7 +380,10 @@ function editablefields_form($form, &$form_state, $entity_type, $entity, $field,
       '#ajax' => $ajax,
       '#limit_validation_errors' => array($form['#parents']),
       '#attributes' => array(
-        'class' => array('editablefield-edit'),
+        'class' => array(
+          'editablefield-edit',
+          'editablefield-edit-' . $edit_style,
+        ),
       ),
     );
   }
